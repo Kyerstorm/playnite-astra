@@ -1,0 +1,14 @@
+# Astra project-specific
+CLAUDE.md
+
+# Build output
+bin/
+obj/
+*.user
+
+# IDE
+.vs/
+.idea/
+
+# Test results
+TestResults/

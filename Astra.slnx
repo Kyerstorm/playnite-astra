@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="Astra.Tests/Astra.Tests.csproj" />
+  <Project Path="Astra/Astra.csproj" />
+</Solution>

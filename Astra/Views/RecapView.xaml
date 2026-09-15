@@ -1,0 +1,130 @@
+<UserControl x:Class="Astra.Views.RecapView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Astra.Views"
+             Foreground="{DynamicResource TextBrush}">
+    <UserControl.Resources>
+        <local:SecondsToHoursConverter x:Key="SecondsToHoursConverter" />
+        <Style x:Key="StatCard" TargetType="Border">
+            <Setter Property="Background" Value="{DynamicResource PopupBackgroundBrush}" />
+            <Setter Property="BorderBrush" Value="{DynamicResource NormalBorderBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="4" />
+            <Setter Property="Padding" Value="16" />
+            <Setter Property="Margin" Value="8" />
+        </Style>
+        <Style x:Key="StatValue" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="28" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{DynamicResource GlyphBrush}" />
+        </Style>
+        <Style x:Key="StatLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Opacity" Value="0.75" />
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <!-- Header: year navigation -->
+        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,12">
+            <TextBlock Text="Astra — Year in Review" FontSize="22" FontWeight="Bold" DockPanel.Dock="Left" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                <Button Content="◀" Command="{Binding PreviousYearCommand}" Width="32" Margin="4,0" />
+                <TextBlock Text="{Binding Year}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" Width="60" TextAlignment="Center" />
+                <Button Content="▶" Command="{Binding NextYearCommand}" Width="32" Margin="4,0" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Overview stat cards: proportional grid, reflows at any resolution -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Recap.TotalPlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Hours played" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Recap.TotalSessions}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Sessions" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="2" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Recap.ActiveDays}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Active days" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="3" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Recap.NewGamesThisYear.Count}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="New games this year" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Top games / new games lists -->
+        <Grid Grid.Row="2" Margin="0,16,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource StatCard}">
+                <DockPanel>
+                    <TextBlock Text="Most played" FontWeight="Bold" DockPanel.Dock="Top" Margin="0,0,0,8" />
+                    <ListBox ItemsSource="{Binding Recap.TopGames}" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <DockPanel Margin="0,4">
+                                    <TextBlock Text="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" DockPanel.Dock="Right" Opacity="0.75" />
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                </DockPanel>
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+
+            <Border Grid.Column="1" Style="{StaticResource StatCard}">
+                <DockPanel>
+                    <TextBlock Text="New this year" FontWeight="Bold" DockPanel.Dock="Top" Margin="0,0,0,8" />
+                    <ListBox ItemsSource="{Binding Recap.NewGamesThisYear}" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                        <ListBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding Name}" Margin="0,4" TextTrimming="CharacterEllipsis" />
+                            </DataTemplate>
+                        </ListBox.ItemTemplate>
+                    </ListBox>
+                </DockPanel>
+            </Border>
+        </Grid>
+
+        <!-- Footer: actions + status -->
+        <DockPanel Grid.Row="3" Margin="0,16,0,0" LastChildFill="False">
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
+                <Button Content="Export recap (JSON)" Command="{Binding ExportCommand}" Padding="10,4" Margin="0,0,8,0" />
+                <Button Content="Import from GameActivity" Command="{Binding ImportGameActivityCommand}" Padding="10,4" Margin="0,0,8,0" />
+                <Button Content="Clear Astra data" Command="{Binding ClearDataCommand}" Padding="10,4" />
+            </StackPanel>
+            <TextBlock Text="{Binding StatusMessage}" DockPanel.Dock="Right" VerticalAlignment="Center" Opacity="0.8" TextWrapping="Wrap" MaxWidth="360" />
+        </DockPanel>
+    </Grid>
+</UserControl>
