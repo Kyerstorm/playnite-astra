@@ -92,3 +92,9 @@ dotnet test Astra.Tests/Astra.Tests.csproj -c Debug --filter "FullyQualifiedName
 4. Restart Playnite, reopen Astra, and confirm the edited value persisted (didn't revert to the original tracked sum).
 5. Right-click the same game again, choose **Reset to tracked value**. Confirm it reverts to the original computed sum (the number it showed before step 3).
 6. Try entering an invalid value (blank, negative, or non-numeric) — confirm an error dialog appears and the value is left unchanged.
+
+### 10. Click a cover on Home's "Top Played" to open game details
+
+1. On the Home page, hover a cover in the "Top Played" row — confirm the cursor changes to a hand.
+2. Click it. Confirm Playnite switches to its own library view (not Astra's) with that exact game selected/highlighted.
+3. Try this for a few different games in the row, including the 10th (last) one, to confirm it's not just the first cell that's wired up.

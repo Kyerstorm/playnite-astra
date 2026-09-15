@@ -14,8 +14,19 @@
                  so ten covers always span the whole row edge-to-edge regardless of window size. -->
             <DataTemplate x:Key="WideCoverCellTemplate">
                 <StackPanel Margin="6,0">
+                    <!-- Clicking the cover jumps to the game's own details page in Playnite's
+                         library view (OpenGameDetailsCommand). A plain ItemsControl - unlike a
+                         ContextMenu's popup - IS part of the row's own visual tree, so a normal
+                         AncestorType=ItemsControl lookup reaches HomeViewModel directly; no
+                         PlacementTarget workaround needed here (see CLAUDE.md). -->
                     <Border HorizontalAlignment="Stretch" Style="{StaticResource CoverPlaceholderBorder}"
+                            Cursor="Hand"
                             Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource AspectRatioHeightConverter}, ConverterParameter=1.5}">
+                        <Border.InputBindings>
+                            <MouseBinding MouseAction="LeftClick"
+                                          Command="{Binding DataContext.OpenGameDetailsCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                          CommandParameter="{Binding}" />
+                        </Border.InputBindings>
                         <Grid>
                             <TextBlock Text="{Binding PlaceholderInitials}" FontSize="24" FontWeight="Bold" Foreground="White"
                                        HorizontalAlignment="Center" VerticalAlignment="Center" />

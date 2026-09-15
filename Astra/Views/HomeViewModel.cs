@@ -45,6 +45,7 @@ namespace Astra.Views
 
         public ICommand PreviousYearCommand { get; }
         public ICommand NextYearCommand { get; }
+        public ICommand OpenGameDetailsCommand { get; }
 
         public HomeViewModel(Astra plugin, AstraSettings settings)
         {
@@ -53,6 +54,7 @@ namespace Astra.Views
 
             PreviousYearCommand = new RelayCommand(_ => Year--);
             NextYearCommand = new RelayCommand(_ => Year++, _ => Year < DateTime.Now.Year);
+            OpenGameDetailsCommand = new RelayCommand(p => OpenGameDetails(p as GameRecapEntry));
 
             year = settings.LastSelectedYear > 0 ? settings.LastSelectedYear : DateTime.Now.Year;
             Refresh();
@@ -62,6 +64,18 @@ namespace Astra.Views
         {
             Recap = plugin.RecapAggregator.BuildRecap(Year);
             TopPlayed = Recap.TopGames.Take(10).ToList();
+        }
+
+        /// <summary>Jumps to the game's own details page in Playnite's library view.</summary>
+        private void OpenGameDetails(GameRecapEntry entry)
+        {
+            if (entry == null)
+            {
+                return;
+            }
+
+            plugin.Api.MainView.SwitchToLibraryView();
+            plugin.Api.MainView.SelectGame(entry.GameId);
         }
     }
 }
