@@ -93,15 +93,22 @@
                     <ListBox ItemsSource="{Binding Recap.TopGames}" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
-                                <DockPanel Margin="0,4">
+                                <!-- Tag carries the RecapViewModel down to the ContextMenu below: a
+                                     ContextMenu renders in its own popup, NOT the visual tree of the
+                                     row it's attached to, so RelativeSource AncestorType=ListBox from
+                                     inside it finds nothing and the Command silently binds to null
+                                     (clicking the item then does nothing). PlacementTarget is the one
+                                     property WPF does wire back to the owning element, so route
+                                     through PlacementTarget.Tag / PlacementTarget.DataContext instead. -->
+                                <DockPanel Margin="0,4" Tag="{Binding DataContext, RelativeSource={RelativeSource AncestorType=ListBox}}">
                                     <DockPanel.ContextMenu>
                                         <ContextMenu>
                                             <MenuItem Header="Edit playtime..."
-                                                      Command="{Binding DataContext.EditPlaytimeCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                                      CommandParameter="{Binding}" />
+                                                      Command="{Binding PlacementTarget.Tag.EditPlaytimeCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                             <MenuItem Header="Reset to tracked value"
-                                                      Command="{Binding DataContext.ResetPlaytimeCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
-                                                      CommandParameter="{Binding}" />
+                                                      Command="{Binding PlacementTarget.Tag.ResetPlaytimeCommand, RelativeSource={RelativeSource AncestorType=ContextMenu}}"
+                                                      CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                         </ContextMenu>
                                     </DockPanel.ContextMenu>
                                     <TextBlock Text="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" DockPanel.Dock="Right" Opacity="0.75" />
