@@ -8,6 +8,9 @@ namespace Astra.Services
         public Guid Id { get; set; }
         public string Name { get; set; }
         public DateTime? Added { get; set; }
+
+        /// <summary>Resolved local file path to the game's current cover, or null if unset/unresolvable.</summary>
+        public string CoverImagePath { get; set; }
     }
 
     /// <summary>

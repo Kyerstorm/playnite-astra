@@ -49,6 +49,28 @@ namespace Astra.Tests
         }
 
         [Fact]
+        public void BuildRecap_NewGamesThisYear_OrderedByAddedDateNewestFirst()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var earlierAdd = Guid.NewGuid();
+            var laterAdd = Guid.NewGuid();
+
+            // earlierAdd has far more playtime than laterAdd, so an ordering bug that
+            // sorts by playtime instead of Added date would put earlierAdd first.
+            db.InsertSession(earlierAdd, new DateTime(2026, 2, 1), 100 * 3600);
+            db.InsertSession(laterAdd, new DateTime(2026, 11, 1), 3600);
+
+            var games = new FakeGameInfoProvider()
+                .Add(new GameInfo { Id = earlierAdd, Name = "Added In January", Added = new DateTime(2026, 1, 5) })
+                .Add(new GameInfo { Id = laterAdd, Name = "Added In November", Added = new DateTime(2026, 11, 1) });
+
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            Assert.Equal("Added In November", recap.NewGamesThisYear.First().Name);
+            Assert.Equal("Added In January", recap.NewGamesThisYear.Last().Name);
+        }
+
+        [Fact]
         public void BuildRecap_UnknownGameIdInSessions_FallsBackToPlaceholderName()
         {
             var db = TestDatabaseFactory.CreateTemp();

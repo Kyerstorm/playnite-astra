@@ -4,24 +4,11 @@
              xmlns:local="clr-namespace:Astra.Views"
              Foreground="{DynamicResource TextBrush}">
     <UserControl.Resources>
-        <local:SecondsToHoursConverter x:Key="SecondsToHoursConverter" />
-        <Style x:Key="StatCard" TargetType="Border">
-            <Setter Property="Background" Value="{DynamicResource PopupBackgroundBrush}" />
-            <Setter Property="BorderBrush" Value="{DynamicResource NormalBorderBrush}" />
-            <Setter Property="BorderThickness" Value="1" />
-            <Setter Property="CornerRadius" Value="4" />
-            <Setter Property="Padding" Value="16" />
-            <Setter Property="Margin" Value="8" />
-        </Style>
-        <Style x:Key="StatValue" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="28" />
-            <Setter Property="FontWeight" Value="Bold" />
-            <Setter Property="Foreground" Value="{DynamicResource GlyphBrush}" />
-        </Style>
-        <Style x:Key="StatLabel" TargetType="TextBlock">
-            <Setter Property="FontSize" Value="13" />
-            <Setter Property="Opacity" Value="0.75" />
-        </Style>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SharedStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
     </UserControl.Resources>
 
     <Grid Margin="24">
@@ -89,8 +76,11 @@
 
             <Border Grid.Column="0" Style="{StaticResource StatCard}">
                 <DockPanel>
-                    <TextBlock Text="Most played" FontWeight="Bold" DockPanel.Dock="Top" Margin="0,0,0,8" />
-                    <ListBox ItemsSource="{Binding Recap.TopGames}" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+                    <DockPanel DockPanel.Dock="Top" Margin="0,0,0,8" LastChildFill="False">
+                        <TextBlock Text="Most played" FontWeight="Bold" VerticalAlignment="Center" DockPanel.Dock="Left" />
+                        <ComboBox ItemsSource="{Binding SortModeOptions}" SelectedItem="{Binding SortMode}" Width="150" DockPanel.Dock="Right" />
+                    </DockPanel>
+                    <ListBox ItemsSource="{Binding LeaderboardEntries}" BorderThickness="0" Background="Transparent" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <!-- Tag carries the RecapViewModel down to the ContextMenu below: a
@@ -111,8 +101,21 @@
                                                       CommandParameter="{Binding PlacementTarget.DataContext, RelativeSource={RelativeSource AncestorType=ContextMenu}}" />
                                         </ContextMenu>
                                     </DockPanel.ContextMenu>
-                                    <TextBlock Text="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" DockPanel.Dock="Right" Opacity="0.75" />
-                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
+                                    <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" Opacity="0.75">
+                                        <TextBlock Text="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" />
+                                        <TextBlock Text=" · " />
+                                        <TextBlock Text="{Binding SessionCount, StringFormat='{}{0} sessions'}" />
+                                        <TextBlock Text=" · " />
+                                        <TextBlock Text="{Binding AvgSessionSeconds, Converter={StaticResource SecondsToMinutesConverter}, StringFormat='{}{0}m avg'}" />
+                                    </StackPanel>
+                                    <Grid Width="28" Height="42" Margin="0,0,10,0">
+                                        <Border Style="{StaticResource CoverPlaceholderBorder}">
+                                            <TextBlock Text="{Binding PlaceholderInitials}" FontSize="11" FontWeight="Bold" Foreground="White"
+                                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                        </Border>
+                                        <Image Source="{Binding CoverImagePath, Converter={StaticResource PathToImageSourceConverter}}" Stretch="UniformToFill" />
+                                    </Grid>
+                                    <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" VerticalAlignment="Center" />
                                 </DockPanel>
                             </DataTemplate>
                         </ListBox.ItemTemplate>

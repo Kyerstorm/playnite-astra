@@ -1,0 +1,131 @@
+<UserControl x:Class="Astra.Views.HomeView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Astra.Views"
+             Foreground="{DynamicResource TextBrush}">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="SharedStyles.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!-- Full-width row cell: stretches to fill its UniformGrid column, height locked
+                 to a 2:3 cover ratio off its own (post-stretch) width via AspectRatioHeightConverter,
+                 so ten covers always span the whole row edge-to-edge regardless of window size. -->
+            <DataTemplate x:Key="WideCoverCellTemplate">
+                <StackPanel Margin="6,0">
+                    <Border HorizontalAlignment="Stretch" Style="{StaticResource CoverPlaceholderBorder}"
+                            Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource AspectRatioHeightConverter}, ConverterParameter=1.5}">
+                        <Grid>
+                            <TextBlock Text="{Binding PlaceholderInitials}" FontSize="24" FontWeight="Bold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                            <Image Source="{Binding CoverImagePath, Converter={StaticResource PathToImageSourceConverter}}" Stretch="UniformToFill" />
+                        </Grid>
+                    </Border>
+                    <TextBlock Text="{Binding Name}" Margin="0,6,0,0" FontSize="12" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" />
+                    <TextBlock Text="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}"
+                               FontSize="11" Opacity="0.6" HorizontalAlignment="Center" />
+                </StackPanel>
+            </DataTemplate>
+
+            <!-- Fixed-height cell for the "New This Year" carousel: a fixed item height is what
+                 lets the vertical WrapPanel below wrap into exactly two rows before scrolling right. -->
+            <DataTemplate x:Key="CarouselCoverCellTemplate">
+                <StackPanel Width="88" Height="176" Margin="6">
+                    <Grid Width="88" Height="132">
+                        <Border Style="{StaticResource CoverPlaceholderBorder}">
+                            <TextBlock Text="{Binding PlaceholderInitials}" FontSize="20" FontWeight="Bold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Image Source="{Binding CoverImagePath, Converter={StaticResource PathToImageSourceConverter}}" Stretch="UniformToFill" />
+                    </Grid>
+                    <TextBlock Text="{Binding Name}" Margin="0,5,0,0" FontSize="11" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" />
+                    <TextBlock Text="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}"
+                               FontSize="10" Opacity="0.6" HorizontalAlignment="Center" />
+                </StackPanel>
+            </DataTemplate>
+        </ResourceDictionary>
+    </UserControl.Resources>
+
+    <Grid Margin="24">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- Header: greeting + year navigation -->
+        <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,12">
+            <TextBlock Text="{Binding Greeting}" FontSize="22" FontWeight="Bold" DockPanel.Dock="Left" VerticalAlignment="Center" />
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                <Button Content="◀" Command="{Binding PreviousYearCommand}" Width="32" Margin="4,0" />
+                <TextBlock Text="{Binding Year}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" Width="60" TextAlignment="Center" />
+                <Button Content="▶" Command="{Binding NextYearCommand}" Width="32" Margin="4,0" />
+            </StackPanel>
+        </DockPanel>
+
+        <!-- Overview stat cards -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+
+            <Border Grid.Column="0" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Recap.TotalPlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Hours played" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Recap.TotalSessions}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Sessions" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Recap.ActiveDays}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Active days" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="3" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Recap.NewGamesThisYear.Count}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="New games this year" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Top 10 most played, by cover - one row, filling the full width -->
+        <StackPanel Grid.Row="2" Margin="0,16,0,0">
+            <TextBlock Text="TOP PLAYED" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
+            <ItemsControl ItemsSource="{Binding TopPlayed}" ItemTemplate="{StaticResource WideCoverCellTemplate}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1" Columns="10" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </StackPanel>
+
+        <!-- New this year, ordered most-recently-added first: a 2-row carousel (vertical wrap,
+             fixed-height items so it wraps after exactly 2 rows) that scrolls horizontally. -->
+        <StackPanel Grid.Row="3" Margin="0,20,0,0">
+            <TextBlock Text="NEW THIS YEAR" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
+            <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="368">
+                <ItemsControl ItemsSource="{Binding Recap.NewGamesThisYear}" ItemTemplate="{StaticResource CarouselCoverCellTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Vertical" Height="368" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+        </StackPanel>
+    </Grid>
+</UserControl>

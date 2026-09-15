@@ -1,0 +1,98 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:local="clr-namespace:Astra.Views">
+
+    <local:SecondsToHoursConverter x:Key="SecondsToHoursConverter" />
+    <local:SecondsToMinutesConverter x:Key="SecondsToMinutesConverter" />
+    <local:PathToImageSourceConverter x:Key="PathToImageSourceConverter" />
+    <local:ColorHexToBrushConverter x:Key="ColorHexToBrushConverter" />
+    <local:AspectRatioHeightConverter x:Key="AspectRatioHeightConverter" />
+
+    <!-- Shared across Home / Most Played / Recap so the three pages read as one system.
+         Metrics (radius, padding, gap) are taken from the UI mockup; colors stay bound
+         to Playnite's own DynamicResource theme brushes so the plugin doesn't break
+         under light or custom community themes. -->
+    <Style x:Key="StatCard" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource PopupBackgroundBrush}" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NormalBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="CornerRadius" Value="8" />
+        <Setter Property="Padding" Value="16,14" />
+        <Setter Property="Margin" Value="6" />
+    </Style>
+    <Style x:Key="StatValue" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="26" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="Foreground" Value="{DynamicResource GlyphBrush}" />
+    </Style>
+    <Style x:Key="StatLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="11" />
+        <Setter Property="Opacity" Value="0.6" />
+    </Style>
+    <!-- TextBlock has no CharacterCasing property (that's TextBox-only) - section labels
+         are written in literal uppercase at each call site instead. -->
+    <Style x:Key="SectionLabel" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="SemiBold" />
+        <Setter Property="Opacity" Value="0.75" />
+    </Style>
+
+    <!-- Reusable 2:3 cover thumbnail: a colored-initials placeholder Border with the
+         real cover Image layered on top. A null/unresolvable CoverImagePath makes the
+         Image draw nothing, so the placeholder underneath shows through automatically -
+         no visibility-toggling logic needed. -->
+    <Style x:Key="CoverPlaceholderBorder" TargetType="Border">
+        <Setter Property="Background" Value="{Binding PlaceholderColorHex, Converter={StaticResource ColorHexToBrushConverter}}" />
+        <Setter Property="CornerRadius" Value="4" />
+    </Style>
+
+    <!-- Circular rank badge for ranked lists (Most Played today; anywhere else a Rank-carrying
+         GameRecapEntry is shown). Gold/silver/bronze fill for the top 3, otherwise a plain
+         outlined circle - DataTriggers rather than a converter, since a prior converter-based
+         attempt here (returning null for "no special color") broke under a XAML edge case
+         (see BUGS.md) and DataTriggers avoid that class of problem entirely. -->
+    <Style x:Key="RankBadge" TargetType="Border">
+        <Setter Property="Width" Value="26" />
+        <Setter Property="Height" Value="26" />
+        <Setter Property="CornerRadius" Value="13" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NormalBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Rank}" Value="1">
+                <Setter Property="Background" Value="#E8C468" />
+                <Setter Property="BorderThickness" Value="0" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Rank}" Value="2">
+                <Setter Property="Background" Value="#C7C9D6" />
+                <Setter Property="BorderThickness" Value="0" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Rank}" Value="3">
+                <Setter Property="Background" Value="#B8895E" />
+                <Setter Property="BorderThickness" Value="0" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+    <Style x:Key="RankBadgeText" TargetType="TextBlock">
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="FontWeight" Value="Bold" />
+        <Setter Property="HorizontalAlignment" Value="Center" />
+        <Setter Property="VerticalAlignment" Value="Center" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Opacity" Value="0.55" />
+        <Style.Triggers>
+            <DataTrigger Binding="{Binding Rank}" Value="1">
+                <Setter Property="Foreground" Value="#1A1A1A" />
+                <Setter Property="Opacity" Value="1" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Rank}" Value="2">
+                <Setter Property="Foreground" Value="#1A1A1A" />
+                <Setter Property="Opacity" Value="1" />
+            </DataTrigger>
+            <DataTrigger Binding="{Binding Rank}" Value="3">
+                <Setter Property="Foreground" Value="#1A1A1A" />
+                <Setter Property="Opacity" Value="1" />
+            </DataTrigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

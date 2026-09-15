@@ -11,6 +11,7 @@ Run only the test class mapped to the feature you're changing, unless you touche
 | GameActivity import | `GameActivityImporterTests` | Missing install reported cleanly, real on-disk schema imports correctly, re-running is idempotent (no duplicate sessions), malformed files are skipped and reported rather than crashing, non-GUID filenames ignored |
 | JSON export | `RecapExporterTests` | Recap round-trips through JSON without data loss |
 | Manual playtime edit | `PlaytimeOverrideTests` (storage) + `RecapAggregatorTests` (aggregation) | Override round-trips and upserts rather than duplicating, is scoped to its own year, clears individually or via `ClearAllData`; recap applies an override in place of the computed sum, total reflects it, an override can change ranking order, unrelated games are unaffected |
+| Leaderboard sorting | `LeaderboardSorterTests` | Sorting by playtime/sessions/average session length each produce the correct order; a game with zero sessions doesn't throw and sorts last under average session length |
 
 ### Running tests
 
@@ -47,6 +48,7 @@ dotnet test Astra.Tests/Astra.Tests.csproj -c Debug --filter "FullyQualifiedName
 2. Open the Astra sidebar item.
 3. Confirm the current year's stat cards updated: hours played, session count, active days all reflect that one session.
 4. Confirm the game appears under "Most played."
+5. Use the sort dropdown next to "Most played" to switch between Playtime / Sessions / AverageSessionLength. Confirm the list reorders correctly each time, and that each row shows hours, session count, and average session length together.
 
 ### 3. Year navigation
 

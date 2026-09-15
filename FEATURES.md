@@ -19,7 +19,7 @@ Legend: ✅ In v1 · 🕓 Candidate for v2 · 🚫 Deliberately excluded
 | Trend line/area charts (day/week/month/year) | 🕓 | GameActivity, PlaytimeInsights |
 | Calendar heatmap (playtime intensity by day) | 🕓 | PlaytimeInsights |
 | Weekday × hour-of-day heatmap | 🕓 | PlaytimeInsights |
-| Leaderboards (top games by playtime/sessions/avg length) | 🕓 | PlaytimeInsights |
+| Leaderboards (top games by playtime/sessions/avg length) | ✅ (year-scoped only, no all-time view) | PlaytimeInsights |
 | Genre/platform/source breakdown charts | 🕓 | GameScrobbler, GameActivity |
 | Time range selector + filtering by source/genre/tags | 🕓 | PlaytimeInsights |
 
@@ -38,6 +38,24 @@ Legend: ✅ In v1 · 🕓 Candidate for v2 · 🚫 Deliberately excluded
 |---|---|---|
 | Per-session FPS/CPU/GPU/RAM/temp tracking | 🚫 | GameActivity |
 | Configurable performance-warning thresholds | 🚫 | GameActivity |
+
+## UI navigation & home experience (2026 redesign)
+
+| Feature | Status | Source |
+|---|---|---|
+| Three-page sidebar navigation (Home / Most Played / Recap) | 🕓 (planned, see CLAUDE.md) | user-requested, inspired by mockup |
+| Home: greeting + this-year stat cards + top 10 covers + "New this year" carousel | 🕓 (planned) | user-requested |
+| Most Played: top-25 cover grid (2:3), year-scoped | 🕓 (planned) | user-requested |
+| Real cover art (Playnite `Game.CoverImage`) with colored-initials fallback | 🕓 (planned) | user-requested, mockup |
+| Compatibility with Cover-Swapper's active cover (read live, never cache) | 🕓 (planned, design confirmed — no code changes needed beyond not caching) | user-requested |
+| "Continue where you left off" recently-played row | 🕓 | brainstormed |
+| "On this day" historical callback | 🕓 | brainstormed |
+| Never-played backlog nudge row | 🕓 | brainstormed |
+| Lightweight local milestones/badges (hours, streaks) | 🕓 | brainstormed |
+| Compare years (side-by-side stat deltas on Recap) | 🕓 | brainstormed |
+| Search/filter on Most Played (platform/source/genre) | 🕓 | brainstormed |
+| Grid/list density toggle on Most Played | 🕓 | brainstormed |
+| Per-stat-card sparkline on Home | 🕓 | brainstormed |
 
 ## Data management
 

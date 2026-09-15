@@ -1,7 +1,9 @@
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Windows.Input;
 using Astra.Models;
+using Astra.Services;
 using Playnite.SDK;
 
 namespace Astra.Views
@@ -27,7 +29,7 @@ namespace Astra.Views
         public void Execute(object parameter) => execute(parameter);
     }
 
-    public class RecapViewModel : ViewModelBase
+    public class RecapViewModel : ViewModelBase, IYearScoped
     {
         private readonly Astra plugin;
         private readonly AstraSettings settings;
@@ -51,6 +53,29 @@ namespace Astra.Views
         {
             get => recap;
             private set => SetValue(ref recap, value);
+        }
+
+        private LeaderboardSortMode sortMode = LeaderboardSortMode.Playtime;
+        public LeaderboardSortMode SortMode
+        {
+            get => sortMode;
+            set
+            {
+                if (SetValue(ref sortMode, value))
+                {
+                    RefreshLeaderboard();
+                }
+            }
+        }
+
+        public IEnumerable<LeaderboardSortMode> SortModeOptions { get; } =
+            (LeaderboardSortMode[])Enum.GetValues(typeof(LeaderboardSortMode));
+
+        private List<GameRecapEntry> leaderboardEntries;
+        public List<GameRecapEntry> LeaderboardEntries
+        {
+            get => leaderboardEntries;
+            private set => SetValue(ref leaderboardEntries, value);
         }
 
         private string statusMessage;
@@ -88,6 +113,12 @@ namespace Astra.Views
         private void Refresh()
         {
             Recap = plugin.RecapAggregator.BuildRecap(Year);
+            RefreshLeaderboard();
+        }
+
+        private void RefreshLeaderboard()
+        {
+            LeaderboardEntries = LeaderboardSorter.Sort(Recap.TopGames, SortMode);
         }
 
         private void Export()
