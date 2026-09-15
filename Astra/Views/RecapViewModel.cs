@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.Windows.Input;
 using Astra.Models;
 using Playnite.SDK;
@@ -64,6 +65,8 @@ namespace Astra.Views
         public ICommand ExportCommand { get; }
         public ICommand ClearDataCommand { get; }
         public ICommand ImportGameActivityCommand { get; }
+        public ICommand EditPlaytimeCommand { get; }
+        public ICommand ResetPlaytimeCommand { get; }
 
         public RecapViewModel(Astra plugin, AstraSettings settings)
         {
@@ -75,6 +78,8 @@ namespace Astra.Views
             ExportCommand = new RelayCommand(_ => Export());
             ClearDataCommand = new RelayCommand(_ => ClearData());
             ImportGameActivityCommand = new RelayCommand(_ => ImportGameActivity());
+            EditPlaytimeCommand = new RelayCommand(p => EditPlaytime(p as GameRecapEntry));
+            ResetPlaytimeCommand = new RelayCommand(p => ResetPlaytime(p as GameRecapEntry));
 
             year = settings.LastSelectedYear > 0 ? settings.LastSelectedYear : DateTime.Now.Year;
             Refresh();
@@ -128,6 +133,47 @@ namespace Astra.Views
                              $"({importResult.SessionsSkippedDuplicate} already present, " +
                              $"{importResult.FilesFailedToParse.Count} file(s) unreadable).";
             Refresh();
+        }
+
+        private void EditPlaytime(GameRecapEntry entry)
+        {
+            if (entry == null)
+            {
+                return;
+            }
+
+            var currentHours = entry.PlaytimeSeconds / 3600.0;
+            var result = plugin.Api.Dialogs.SelectString(
+                $"Enter corrected playtime in hours for \"{entry.Name}\" ({Year}):",
+                "Edit Playtime",
+                currentHours.ToString("0.##", CultureInfo.InvariantCulture));
+
+            if (!result.Result)
+            {
+                return;
+            }
+
+            if (!double.TryParse(result.SelectedString, NumberStyles.Float, CultureInfo.InvariantCulture, out var hours) || hours < 0)
+            {
+                plugin.Api.Dialogs.ShowErrorMessage("Enter a valid, non-negative number of hours.", "Edit Playtime");
+                return;
+            }
+
+            plugin.Database.SetPlaytimeOverride(entry.GameId, Year, (long)Math.Round(hours * 3600));
+            Refresh();
+            StatusMessage = $"Set {entry.Name}'s {Year} playtime to {hours:0.##}h.";
+        }
+
+        private void ResetPlaytime(GameRecapEntry entry)
+        {
+            if (entry == null)
+            {
+                return;
+            }
+
+            plugin.Database.ClearPlaytimeOverride(entry.GameId, Year);
+            Refresh();
+            StatusMessage = $"Reset {entry.Name}'s {Year} playtime to the tracked value.";
         }
     }
 }

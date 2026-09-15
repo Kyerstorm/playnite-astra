@@ -26,11 +26,11 @@ namespace Astra.Services
         {
             var sessions = database.GetSessionsForYear(year);
             var games = gameInfoProvider.GetAllGames().ToDictionary(g => g.Id, g => g);
+            var overrides = database.GetPlaytimeOverridesForYear(year);
 
             var recap = new RecapData
             {
                 Year = year,
-                TotalPlaytimeSeconds = sessions.Sum(s => s.DurationSeconds),
                 TotalSessions = sessions.Count,
                 ActiveDays = sessions.Select(s => s.StartedAt.Date).Distinct().Count()
             };
@@ -41,11 +41,15 @@ namespace Astra.Services
                 {
                     GameId = g.Key,
                     Name = games.TryGetValue(g.Key, out var info) ? info.Name : "Unknown game",
-                    PlaytimeSeconds = g.Sum(s => s.DurationSeconds),
+                    PlaytimeSeconds = overrides.TryGetValue(g.Key, out var overrideSeconds) ? overrideSeconds : g.Sum(s => s.DurationSeconds),
                     SessionCount = g.Count()
                 })
                 .OrderByDescending(e => e.PlaytimeSeconds)
                 .ToList();
+
+            // Recomputed from (possibly overridden) TopGames rather than the raw
+            // session sum, so the total stays consistent with any manual edits.
+            recap.TotalPlaytimeSeconds = recap.TopGames.Sum(g => g.PlaytimeSeconds);
 
             recap.NewGamesThisYear = games.Values
                 .Where(g => g.Added.HasValue && g.Added.Value.Year == year)

@@ -10,6 +10,7 @@ Run only the test class mapped to the feature you're changing, unless you touche
 | Yearly recap math | `RecapAggregatorTests` | Totals only include the selected year, top-games ranking, new-games-this-year filter, unknown game ID falls back gracefully, empty-year case |
 | GameActivity import | `GameActivityImporterTests` | Missing install reported cleanly, real on-disk schema imports correctly, re-running is idempotent (no duplicate sessions), malformed files are skipped and reported rather than crashing, non-GUID filenames ignored |
 | JSON export | `RecapExporterTests` | Recap round-trips through JSON without data loss |
+| Manual playtime edit | `PlaytimeOverrideTests` (storage) + `RecapAggregatorTests` (aggregation) | Override round-trips and upserts rather than duplicating, is scoped to its own year, clears individually or via `ClearAllData`; recap applies an override in place of the computed sum, total reflects it, an override can change ranking order, unrelated games are unaffected |
 
 ### Running tests
 
@@ -80,3 +81,12 @@ dotnet test Astra.Tests/Astra.Tests.csproj -c Debug --filter "FullyQualifiedName
 
 1. In Playnite's Settings → Appearance, switch between at least: the default theme, a light-toned theme, and a true-black/OLED-style theme (if one is installed — the "Aniki ReMake" or similar community fullscreen themes ship dark-mode color variants; for Desktop mode any installed alternate theme works).
 2. Reopen the Astra sidebar item after each switch and confirm text remains readable (no white-on-white or black-on-black), and card backgrounds/borders adapt rather than staying hardcoded to one theme's colors.
+
+### 9. Edit / reset a game's yearly playtime
+
+1. In "Most played," right-click any game's row (clicking anywhere on the row, including its title, should open the menu).
+2. Choose **Edit playtime...**. Confirm the input dialog pre-fills with the game's current tracked hours.
+3. Enter a new number (e.g. `8.8`) and confirm. The row's hours and the year's total stat card should update immediately.
+4. Restart Playnite, reopen Astra, and confirm the edited value persisted (didn't revert to the original tracked sum).
+5. Right-click the same game again, choose **Reset to tracked value**. Confirm it reverts to the original computed sum (the number it showed before step 3).
+6. Try entering an invalid value (blank, negative, or non-numeric) — confirm an error dialog appears and the value is left unchanged.

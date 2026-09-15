@@ -94,6 +94,16 @@
                         <ListBox.ItemTemplate>
                             <DataTemplate>
                                 <DockPanel Margin="0,4">
+                                    <DockPanel.ContextMenu>
+                                        <ContextMenu>
+                                            <MenuItem Header="Edit playtime..."
+                                                      Command="{Binding DataContext.EditPlaytimeCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                      CommandParameter="{Binding}" />
+                                            <MenuItem Header="Reset to tracked value"
+                                                      Command="{Binding DataContext.ResetPlaytimeCommand, RelativeSource={RelativeSource AncestorType=ListBox}}"
+                                                      CommandParameter="{Binding}" />
+                                        </ContextMenu>
+                                    </DockPanel.ContextMenu>
                                     <TextBlock Text="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" DockPanel.Dock="Right" Opacity="0.75" />
                                     <TextBlock Text="{Binding Name}" TextTrimming="CharacterEllipsis" />
                                 </DockPanel>

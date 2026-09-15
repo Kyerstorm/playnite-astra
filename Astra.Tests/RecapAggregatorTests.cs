@@ -70,5 +70,77 @@ namespace Astra.Tests
             Assert.Equal(0, recap.TotalPlaytimeSeconds);
             Assert.Empty(recap.TopGames);
         }
+
+        [Fact]
+        public void BuildRecap_WithOverride_ReplacesComputedPlaytimeForThatGame()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 3, 1), 108 * 3600 + 48 * 60); // ~108.8h tracked
+
+            db.SetPlaytimeOverride(gameId, 2026, (long)(8.8 * 3600));
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Monster Hunter Wilds" });
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            var entry = Assert.Single(recap.TopGames);
+            Assert.Equal((long)(8.8 * 3600), entry.PlaytimeSeconds);
+            Assert.Equal(1, entry.SessionCount); // real tracked session count is untouched by the override
+        }
+
+        [Fact]
+        public void BuildRecap_WithOverride_TotalPlaytimeReflectsOverriddenValue()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameA = Guid.NewGuid();
+            var gameB = Guid.NewGuid();
+            db.InsertSession(gameA, new DateTime(2026, 1, 1), 100 * 3600);
+            db.InsertSession(gameB, new DateTime(2026, 1, 1), 50 * 3600);
+            db.SetPlaytimeOverride(gameA, 2026, 10 * 3600);
+
+            var games = new FakeGameInfoProvider()
+                .Add(new GameInfo { Id = gameA, Name = "Game A" })
+                .Add(new GameInfo { Id = gameB, Name = "Game B" });
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            Assert.Equal(10 * 3600 + 50 * 3600, recap.TotalPlaytimeSeconds);
+        }
+
+        [Fact]
+        public void BuildRecap_OverrideCanChangeTopGamesRankingOrder()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var leader = Guid.NewGuid();
+            var underdog = Guid.NewGuid();
+            db.InsertSession(leader, new DateTime(2026, 1, 1), 100 * 3600);
+            db.InsertSession(underdog, new DateTime(2026, 1, 1), 10 * 3600);
+            db.SetPlaytimeOverride(underdog, 2026, 200 * 3600); // now the real leader
+
+            var games = new FakeGameInfoProvider()
+                .Add(new GameInfo { Id = leader, Name = "Former Leader" })
+                .Add(new GameInfo { Id = underdog, Name = "New Leader" });
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            Assert.Equal("New Leader", recap.TopGames.First().Name);
+        }
+
+        [Fact]
+        public void BuildRecap_GameWithoutOverride_UsesComputedSumUnaffected()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var editedGame = Guid.NewGuid();
+            var untouchedGame = Guid.NewGuid();
+            db.InsertSession(editedGame, new DateTime(2026, 1, 1), 100 * 3600);
+            db.InsertSession(untouchedGame, new DateTime(2026, 1, 1), 20 * 3600);
+            db.SetPlaytimeOverride(editedGame, 2026, 5 * 3600);
+
+            var games = new FakeGameInfoProvider()
+                .Add(new GameInfo { Id = editedGame, Name = "Edited" })
+                .Add(new GameInfo { Id = untouchedGame, Name = "Untouched" });
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            var untouchedEntry = recap.TopGames.Single(e => e.GameId == untouchedGame);
+            Assert.Equal(20 * 3600, untouchedEntry.PlaytimeSeconds);
+        }
     }
 }

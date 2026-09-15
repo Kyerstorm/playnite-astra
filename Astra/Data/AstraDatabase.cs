@@ -57,6 +57,12 @@ namespace Astra.Data
                     );
                     CREATE INDEX IF NOT EXISTS IX_Sessions_GameId ON Sessions(GameId);
                     CREATE INDEX IF NOT EXISTS IX_Sessions_StartedAt ON Sessions(StartedAt);
+                    CREATE TABLE IF NOT EXISTS PlaytimeOverrides (
+                        GameId TEXT NOT NULL,
+                        Year INTEGER NOT NULL,
+                        OverrideSeconds INTEGER NOT NULL,
+                        PRIMARY KEY (GameId, Year)
+                    );
                     INSERT OR IGNORE INTO Meta (Key, Value) VALUES ('SchemaVersion', @version);
                 ";
                 command.Parameters.AddWithValue("@version", SchemaVersion.ToString());
@@ -118,17 +124,74 @@ namespace Astra.Data
         }
 
         /// <summary>
-        /// Deletes all recorded session history. Does not touch Playnite's own
-        /// library/game data — only Astra's local tracking table.
+        /// Deletes all recorded session history and manual playtime overrides.
+        /// Does not touch Playnite's own library/game data — only Astra's local
+        /// tracking tables.
         /// </summary>
         public void ClearAllData()
         {
             using (var connection = OpenConnection())
             using (var command = connection.CreateCommand())
             {
-                command.CommandText = "DELETE FROM Sessions;";
+                command.CommandText = "DELETE FROM Sessions; DELETE FROM PlaytimeOverrides;";
                 command.ExecuteNonQuery();
             }
+        }
+
+        /// <summary>
+        /// Sets (or replaces) a manual correction for a game's total tracked
+        /// playtime in a given year. RecapAggregator applies this on top of
+        /// the computed sum of that game's sessions for the year.
+        /// </summary>
+        public void SetPlaytimeOverride(Guid gameId, int year, long overrideSeconds)
+        {
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = @"
+                    INSERT OR REPLACE INTO PlaytimeOverrides (GameId, Year, OverrideSeconds)
+                    VALUES (@gameId, @year, @overrideSeconds);
+                ";
+                command.Parameters.AddWithValue("@gameId", gameId.ToString());
+                command.Parameters.AddWithValue("@year", year);
+                command.Parameters.AddWithValue("@overrideSeconds", overrideSeconds);
+                command.ExecuteNonQuery();
+            }
+        }
+
+        /// <summary>Removes a manual playtime correction, reverting that game/year to its computed value.</summary>
+        public void ClearPlaytimeOverride(Guid gameId, int year)
+        {
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "DELETE FROM PlaytimeOverrides WHERE GameId = @gameId AND Year = @year;";
+                command.Parameters.AddWithValue("@gameId", gameId.ToString());
+                command.Parameters.AddWithValue("@year", year);
+                command.ExecuteNonQuery();
+            }
+        }
+
+        public Dictionary<Guid, long> GetPlaytimeOverridesForYear(int year)
+        {
+            var results = new Dictionary<Guid, long>();
+
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT GameId, OverrideSeconds FROM PlaytimeOverrides WHERE Year = @year;";
+                command.Parameters.AddWithValue("@year", year);
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        results[Guid.Parse(reader.GetString(0))] = reader.GetInt64(1);
+                    }
+                }
+            }
+
+            return results;
         }
 
         /// <summary>
