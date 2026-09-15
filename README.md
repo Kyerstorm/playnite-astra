@@ -45,7 +45,7 @@ See [BUGS.md](BUGS.md) — kept up to date after every change. Highlights: sessi
 
 ## Project status
 
-Early development. Built and unit-tested; manual verification against a live Playnite install (sidebar rendering, multi-resolution, theme compatibility) is in progress — see BUGS.md's "Open items" section for what's still unconfirmed.
+Early development. Built, unit-tested, and confirmed loading cleanly in a live Playnite install (verified via Playnite's own log, no errors). Visual/interactive verification (sidebar rendering, multi-resolution, theme compatibility) is still outstanding — see BUGS.md's "Open items" section.
 
 ## Credits
 

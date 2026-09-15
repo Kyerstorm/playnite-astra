@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using Microsoft.Data.Sqlite;
+using System.Data.SQLite;
 
 namespace Astra.Data
 {
@@ -28,13 +28,13 @@ namespace Astra.Data
         {
             Directory.CreateDirectory(pluginUserDataPath);
             var dbPath = Path.Combine(pluginUserDataPath, "astra.db");
-            connectionString = new SqliteConnectionStringBuilder { DataSource = dbPath }.ToString();
+            connectionString = new SQLiteConnectionStringBuilder { DataSource = dbPath }.ToString();
             Initialize();
         }
 
-        private SqliteConnection OpenConnection()
+        private SQLiteConnection OpenConnection()
         {
-            var connection = new SqliteConnection(connectionString);
+            var connection = new SQLiteConnection(connectionString);
             connection.Open();
             return connection;
         }
