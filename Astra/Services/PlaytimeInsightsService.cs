@@ -32,8 +32,78 @@ namespace Astra.Services
                 Sessions = BuildSessionStats(sessions),
                 Weekday = BuildWeekdayStats(sessions),
                 SessionLengths = BuildSessionLengthBuckets(sessions),
-                Streaks = BuildStreaks(sessions)
+                Streaks = BuildStreaks(sessions),
+                Hours = BuildHourStats(sessions),
+                WeekdayHours = BuildWeekdayHourHeatmap(sessions)
             };
+        }
+
+        /// <summary>Fixed 3-hour bucket boundaries for the weekday x hour heatmap - spec section 13.</summary>
+        private static readonly int[] HourBucketStarts = { 0, 3, 6, 9, 12, 15, 18, 21 };
+
+        internal static HourStats BuildHourStats(List<Models.Session> sessions)
+        {
+            var buckets = new HourBucket[24];
+            for (var h = 0; h < 24; h++)
+            {
+                buckets[h] = new HourBucket { Hour = h };
+            }
+
+            foreach (var session in sessions)
+            {
+                var hour = session.StartedAt.Hour;
+                buckets[hour].PlaytimeSeconds += session.DurationSeconds;
+                buckets[hour].SessionCount++;
+            }
+
+            var maxSeconds = buckets.Max(b => b.PlaytimeSeconds);
+            if (maxSeconds > 0)
+            {
+                foreach (var bucket in buckets)
+                {
+                    bucket.BarFraction = bucket.PlaytimeSeconds / (double)maxSeconds;
+                }
+            }
+
+            return new HourStats { Hours = buckets.ToList() };
+        }
+
+        internal static WeekdayHourHeatmap BuildWeekdayHourHeatmap(List<Models.Session> sessions)
+        {
+            // [weekday index Monday=0..Sunday=6][hour-bucket index 0..7]
+            var grid = new WeekdayHourCell[7, HourBucketStarts.Length];
+            for (var d = 0; d < 7; d++)
+            {
+                for (var b = 0; b < HourBucketStarts.Length; b++)
+                {
+                    grid[d, b] = new WeekdayHourCell
+                    {
+                        DayOfWeek = (DayOfWeek)(((int)DayOfWeek.Monday + d) % 7),
+                        BucketStartHour = HourBucketStarts[b],
+                        BucketEndHour = b < HourBucketStarts.Length - 1 ? HourBucketStarts[b + 1] : 24
+                    };
+                }
+            }
+
+            foreach (var session in sessions)
+            {
+                var dayIndex = ((int)session.StartedAt.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+                var bucketIndex = session.StartedAt.Hour / 3;
+                grid[dayIndex, bucketIndex].PlaytimeSeconds += session.DurationSeconds;
+                grid[dayIndex, bucketIndex].SessionCount++;
+            }
+
+            var cells = grid.Cast<WeekdayHourCell>().ToList();
+            var maxSeconds = cells.Max(c => c.PlaytimeSeconds);
+            if (maxSeconds > 0)
+            {
+                foreach (var cell in cells)
+                {
+                    cell.Intensity = cell.PlaytimeSeconds / (double)maxSeconds;
+                }
+            }
+
+            return new WeekdayHourHeatmap { Cells = cells };
         }
 
         /// <summary>Inclusive-low/exclusive-high boundaries in seconds, and the label shown for each -

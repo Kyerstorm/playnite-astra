@@ -218,6 +218,64 @@ namespace Astra.Tests
         }
 
         [Fact]
+        public void Hours_AlwaysReturns24Buckets()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 1, 1), new DateTime(2026, 2, 1));
+
+            Assert.Equal(24, result.Hours.Hours.Count);
+            Assert.Equal(Enumerable.Range(0, 24), result.Hours.Hours.Select(h => h.Hour));
+        }
+
+        [Fact]
+        public void Hours_BucketsBySessionStartHour()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 5, 1, 21, 30, 0), 3600); // starts hour 21
+            db.InsertSession(game, new DateTime(2026, 5, 1, 21, 45, 0), 1800); // also hour 21
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 5, 1), new DateTime(2026, 5, 2));
+
+            Assert.Equal(5400, result.Hours.Hours[21].PlaytimeSeconds);
+            Assert.Equal(2, result.Hours.Hours[21].SessionCount);
+            Assert.Equal(1.0, result.Hours.Hours[21].BarFraction);
+        }
+
+        [Fact]
+        public void WeekdayHourHeatmap_Always56Cells_MondayFirstEightBucketsPerDay()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 1, 1), new DateTime(2026, 2, 1));
+
+            Assert.Equal(56, result.WeekdayHours.Cells.Count);
+            Assert.Equal(DayOfWeek.Monday, result.WeekdayHours.Cells[0].DayOfWeek);
+            Assert.Equal(0, result.WeekdayHours.Cells[0].BucketStartHour);
+            Assert.Equal(3, result.WeekdayHours.Cells[0].BucketEndHour);
+            Assert.Equal(21, result.WeekdayHours.Cells[7].BucketStartHour);
+            Assert.Equal(24, result.WeekdayHours.Cells[7].BucketEndHour);
+        }
+
+        [Fact]
+        public void WeekdayHourHeatmap_AttributesSessionToCorrectDayAndBucket()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            // 2026-03-21 is a Saturday, 20:15 falls in the 18-21 bucket.
+            db.InsertSession(game, new DateTime(2026, 3, 21, 20, 15, 0), 1800);
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 3, 1), new DateTime(2026, 4, 1));
+
+            var cell = result.WeekdayHours.Cells.Single(c => c.DayOfWeek == DayOfWeek.Saturday && c.BucketStartHour == 18);
+            Assert.Equal(1800, cell.PlaytimeSeconds);
+            Assert.Equal(1, cell.SessionCount);
+            Assert.True(cell.HasActivity);
+            Assert.Equal(1.0, cell.Intensity);
+        }
+
+        [Fact]
         public void SessionStats_AverageSessionsPerActiveDay_DividesByDistinctDaysNotTotalDays()
         {
             var db = TestDatabaseFactory.CreateTemp();

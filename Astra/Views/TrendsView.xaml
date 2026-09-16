@@ -15,6 +15,7 @@
             <local:MonthNumberToNameConverter x:Key="MonthNumberToNameConverter" />
             <local:NullableEnumToStringConverter x:Key="NullableEnumToStringConverter" />
             <local:BarFractionToGridLengthConverter x:Key="BarFractionToGridLengthConverter" />
+            <local:IntensityToOpacityConverter x:Key="IntensityToOpacityConverter" />
 
             <!-- One row of a horizontal bar chart: label, then a two-column track where the left
                  column's star-width is the value's fraction of the busiest row (see
@@ -335,6 +336,124 @@
                         </StackPanel>
                     </Border>
                 </Grid>
+
+                <!-- Hour-of-day + Weekday x Hour heatmap -->
+                <Border Style="{StaticResource AnalyticsCard}">
+                    <StackPanel>
+                        <TextBlock Text="WHEN DO YOU PLAY?" Style="{StaticResource SectionLabel}" Margin="0,0,0,10" />
+
+                        <!-- Compact 24-bar strip: one vertical bar per hour, bottom-anchored via a
+                             two-row Grid (spacer + bar) reusing BarFractionToGridLengthConverter
+                             vertically instead of horizontally. -->
+                        <ItemsControl ItemsSource="{Binding Analytics.Hours.Hours}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1" Columns="24" Height="64" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="1,0" ToolTipService.ToolTip="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursMinutesConverter}}">
+                                        <Grid.RowDefinitions>
+                                            <RowDefinition Height="{Binding BarFraction, Converter={StaticResource BarFractionToGridLengthConverter}, ConverterParameter=remainder}" />
+                                            <RowDefinition Height="{Binding BarFraction, Converter={StaticResource BarFractionToGridLengthConverter}}" />
+                                        </Grid.RowDefinitions>
+                                        <Border Grid.Row="1" Style="{StaticResource BarTrack}" Height="Auto" VerticalAlignment="Stretch" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <Grid Margin="0,4,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="00" FontSize="10" Opacity="0.5" HorizontalAlignment="Left" />
+                            <TextBlock Grid.Column="1" Text="03" FontSize="10" Opacity="0.5" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="2" Text="06" FontSize="10" Opacity="0.5" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="3" Text="09" FontSize="10" Opacity="0.5" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="4" Text="12" FontSize="10" Opacity="0.5" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="5" Text="15" FontSize="10" Opacity="0.5" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="6" Text="18" FontSize="10" Opacity="0.5" HorizontalAlignment="Center" />
+                            <TextBlock Grid.Column="7" Text="21" FontSize="10" Opacity="0.5" HorizontalAlignment="Right" />
+                        </Grid>
+
+                        <!-- Weekday x Hour-bucket heatmap: fixed static row/column labels (day names,
+                             3-hour bucket starts never change) alongside a data-bound cell grid, so no
+                             index math is needed in XAML for the labels themselves. -->
+                        <Grid Margin="0,18,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="38" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="16" />
+                                <RowDefinition Height="*" />
+                            </Grid.RowDefinitions>
+
+                            <Grid Grid.Row="0" Grid.Column="1">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0" Text="00" FontSize="9" Opacity="0.5" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="1" Text="03" FontSize="9" Opacity="0.5" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="2" Text="06" FontSize="9" Opacity="0.5" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="3" Text="09" FontSize="9" Opacity="0.5" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="4" Text="12" FontSize="9" Opacity="0.5" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="5" Text="15" FontSize="9" Opacity="0.5" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="6" Text="18" FontSize="9" Opacity="0.5" HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="7" Text="21" FontSize="9" Opacity="0.5" HorizontalAlignment="Center" />
+                            </Grid>
+
+                            <StackPanel Grid.Row="1" Grid.Column="0">
+                                <TextBlock Text="Mon" FontSize="9" Opacity="0.5" Height="20" VerticalAlignment="Center" />
+                                <TextBlock Text="Tue" FontSize="9" Opacity="0.5" Height="20" VerticalAlignment="Center" />
+                                <TextBlock Text="Wed" FontSize="9" Opacity="0.5" Height="20" VerticalAlignment="Center" />
+                                <TextBlock Text="Thu" FontSize="9" Opacity="0.5" Height="20" VerticalAlignment="Center" />
+                                <TextBlock Text="Fri" FontSize="9" Opacity="0.5" Height="20" VerticalAlignment="Center" />
+                                <TextBlock Text="Sat" FontSize="9" Opacity="0.5" Height="20" VerticalAlignment="Center" />
+                                <TextBlock Text="Sun" FontSize="9" Opacity="0.5" Height="20" VerticalAlignment="Center" />
+                            </StackPanel>
+
+                            <ItemsControl Grid.Row="1" Grid.Column="1" ItemsSource="{Binding Analytics.WeekdayHours.Cells}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <UniformGrid Rows="7" Columns="8" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <Border Margin="1.5" Height="18" CornerRadius="2">
+                                            <Border.ToolTip>
+                                                <TextBlock>
+                                                    <Run Text="{Binding DayOfWeek, Mode=OneWay}" /><Run Text=" " />
+                                                    <Run Text="{Binding BucketStartHour, StringFormat='{}{0:00}:00', Mode=OneWay}" /><Run Text="-" /><Run Text="{Binding BucketEndHour, StringFormat='{}{0:00}:00', Mode=OneWay}" />
+                                                </TextBlock>
+                                            </Border.ToolTip>
+                                            <Border.Style>
+                                                <!-- Background/Opacity live as base Setters (not local attributes) so the
+                                                     DataTrigger below can actually override them - a local property value
+                                                     always wins over a Style trigger in WPF, which would otherwise make
+                                                     the "no activity" case unreachable. -->
+                                                <Style TargetType="Border">
+                                                    <Setter Property="Background" Value="{DynamicResource GlyphBrush}" />
+                                                    <Setter Property="Opacity" Value="{Binding Intensity, Converter={StaticResource IntensityToOpacityConverter}}" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding HasActivity}" Value="False">
+                                                            <Setter Property="Background" Value="#14808080" />
+                                                            <Setter Property="Opacity" Value="1" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Border.Style>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </Grid>
+                    </StackPanel>
+                </Border>
 
                 <!-- Streaks -->
                 <Border Style="{StaticResource AnalyticsCard}">

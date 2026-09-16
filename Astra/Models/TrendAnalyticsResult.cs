@@ -13,5 +13,7 @@ namespace Astra.Models
         public WeekdayStats Weekday { get; set; }
         public List<SessionLengthBucket> SessionLengths { get; set; }
         public StreakStats Streaks { get; set; }
+        public HourStats Hours { get; set; }
+        public WeekdayHourHeatmap WeekdayHours { get; set; }
     }
 }
