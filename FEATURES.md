@@ -16,7 +16,7 @@ Legend: ✅ In v1 · 🕓 Candidate for v2 · 🚫 Deliberately excluded
 | Feature | Status | Source |
 |---|---|---|
 | Overview stat cards (hours, sessions, active days, new games) | ✅ (subset) | PlaytimeInsights |
-| Trend line/area charts (day/week/month/year) | 🕓 | GameActivity, PlaytimeInsights |
+| Trend line/area charts (day/week/month/year) | ✅ | GameActivity, PlaytimeInsights |
 | Calendar heatmap (playtime intensity by day) | 🕓 | PlaytimeInsights |
 | Weekday × hour-of-day heatmap | 🕓 | PlaytimeInsights |
 | Leaderboards (top games by playtime/sessions/avg length) | ✅ (year-scoped only, no all-time view) | PlaytimeInsights |

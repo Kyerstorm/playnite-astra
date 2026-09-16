@@ -24,6 +24,7 @@ namespace Astra
         internal readonly AstraDatabase Database;
         internal readonly SessionTracker SessionTracker;
         internal readonly RecapAggregator RecapAggregator;
+        internal readonly TrendAggregationService TrendAggregationService;
         internal readonly RecapExporter RecapExporter;
         internal readonly GameActivityImporter GameActivityImporter;
 
@@ -36,6 +37,7 @@ namespace Astra
             Database = new AstraDatabase(GetPluginUserDataPath());
             SessionTracker = new SessionTracker(Database);
             RecapAggregator = new RecapAggregator(Database, new PlayniteGameInfoProvider(api));
+            TrendAggregationService = new TrendAggregationService(Database);
             RecapExporter = new RecapExporter();
             GameActivityImporter = new GameActivityImporter(Database);
         }

@@ -14,6 +14,11 @@ namespace Astra.Views
                 return Math.Round(seconds / 3600.0, 1);
             }
 
+            if (value is double secondsDouble)
+            {
+                return Math.Round(secondsDouble / 3600.0, 1);
+            }
+
             return 0;
         }
 

@@ -138,5 +138,23 @@
                 </ItemsControl>
             </ScrollViewer>
         </StackPanel>
+
+        <!-- Compact monthly playtime trend for the selected year - an overview teaser, not the analytics
+             experience (no Day/Week/Month/Year controls, no range picker: that's the dedicated Trends
+             page). "View Trends ->" hands off to it already scoped to Month/<this year>. -->
+        <StackPanel Grid.Row="4" Margin="0,20,0,0">
+            <DockPanel LastChildFill="False" Margin="6,0,0,8">
+                <TextBlock Text="PLAYTIME TREND" Style="{StaticResource SectionLabel}" DockPanel.Dock="Left" />
+                <TextBlock DockPanel.Dock="Right" Cursor="Hand" FontSize="12" Foreground="{DynamicResource GlyphBrush}">
+                    <TextBlock.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding ViewTrendsCommand}" />
+                    </TextBlock.InputBindings>
+                    <Run Text="View Trends " /><Run Text="→" />
+                </TextBlock>
+            </DockPanel>
+            <Border Style="{StaticResource StatCard}" Padding="12" MinHeight="90" MaxHeight="140">
+                <local:TrendChartControl Trend="{Binding HomeTrend}" Compact="True" />
+            </Border>
+        </StackPanel>
     </Grid>
 </UserControl>

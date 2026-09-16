@@ -124,6 +124,45 @@ namespace Astra.Data
         }
 
         /// <summary>
+        /// Bounded range query backing TrendAggregationService - callers pass whatever window
+        /// they need (e.g. "last 30 days", "last 10 years") rather than Astra ever loading the
+        /// full Sessions table. End is exclusive, matching GetSessionsForYear's convention.
+        /// </summary>
+        public List<Models.Session> GetSessionsForDateRange(DateTime start, DateTime end)
+        {
+            var results = new List<Models.Session>();
+
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = @"
+                    SELECT Id, GameId, StartedAt, DurationSeconds
+                    FROM Sessions
+                    WHERE StartedAt >= @start AND StartedAt < @end
+                    ORDER BY StartedAt ASC;
+                ";
+                command.Parameters.AddWithValue("@start", start.ToString(TimestampFormat));
+                command.Parameters.AddWithValue("@end", end.ToString(TimestampFormat));
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        results.Add(new Models.Session
+                        {
+                            Id = reader.GetInt64(0),
+                            GameId = Guid.Parse(reader.GetString(1)),
+                            StartedAt = DateTime.ParseExact(reader.GetString(2), TimestampFormat, System.Globalization.CultureInfo.InvariantCulture),
+                            DurationSeconds = reader.GetInt64(3)
+                        });
+                    }
+                }
+            }
+
+            return results;
+        }
+
+        /// <summary>
         /// Deletes all recorded session history and manual playtime overrides.
         /// Does not touch Playnite's own library/game data — only Astra's local
         /// tracking tables.
@@ -210,6 +249,23 @@ namespace Astra.Data
                 command.Parameters.AddWithValue("@gameId", gameId.ToString());
                 command.Parameters.AddWithValue("@startedAt", startedAt.ToString(TimestampFormat));
                 return Convert.ToInt32(command.ExecuteScalar()) > 0;
+            }
+        }
+
+        /// <summary>Backs Trends' "All years" range preset - a single scalar query, not a full-table load.</summary>
+        public int? GetEarliestSessionYear()
+        {
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT MIN(StartedAt) FROM Sessions;";
+                var result = command.ExecuteScalar();
+                if (result == null || result is DBNull)
+                {
+                    return null;
+                }
+
+                return DateTime.ParseExact((string)result, TimestampFormat, System.Globalization.CultureInfo.InvariantCulture).Year;
             }
         }
 

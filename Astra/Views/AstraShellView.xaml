@@ -9,6 +9,9 @@
         <DataTemplate DataType="{x:Type local:HomeViewModel}">
             <local:HomeView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type local:TrendsViewModel}">
+            <local:TrendsView />
+        </DataTemplate>
         <DataTemplate DataType="{x:Type local:MostPlayedViewModel}">
             <local:MostPlayedView />
         </DataTemplate>
@@ -77,6 +80,22 @@
                                 <Rectangle Width="10" Height="8" VerticalAlignment="Bottom" Fill="{DynamicResource GlyphBrush}" />
                             </Grid>
                             <TextBlock Text="Home" FontSize="13" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource NavRow}" Tag="{Binding IsTrendsActive}">
+                    <Border.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding ShowTrendsCommand}" />
+                    </Border.InputBindings>
+                    <Grid>
+                        <Rectangle Style="{StaticResource ActiveAccentBar}" />
+                        <StackPanel Orientation="Horizontal" Margin="16,9">
+                            <Grid Width="16" Height="16" Margin="0,0,12,0" VerticalAlignment="Center">
+                                <Polyline Points="1,13 6,7 9,10 15,2" Stroke="{DynamicResource GlyphBrush}"
+                                          StrokeThickness="2" StrokeStartLineCap="Round" StrokeEndLineCap="Round" StrokeLineJoin="Round" />
+                            </Grid>
+                            <TextBlock Text="Trends" FontSize="13" VerticalAlignment="Center" />
                         </StackPanel>
                     </Grid>
                 </Border>

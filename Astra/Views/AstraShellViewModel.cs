@@ -14,6 +14,7 @@ namespace Astra.Views
         private readonly AstraSettings settings;
 
         public HomeViewModel Home { get; }
+        public TrendsViewModel Trends { get; }
         public MostPlayedViewModel MostPlayed { get; }
         public RecapViewModel Recap { get; }
 
@@ -36,6 +37,7 @@ namespace Astra.Views
                     }
 
                     NotifyPropertyChanged(nameof(IsHomeActive));
+                    NotifyPropertyChanged(nameof(IsTrendsActive));
                     NotifyPropertyChanged(nameof(IsMostPlayedActive));
                     NotifyPropertyChanged(nameof(IsRecapActive));
                 }
@@ -43,10 +45,12 @@ namespace Astra.Views
         }
 
         public bool IsHomeActive => ReferenceEquals(CurrentPage, Home);
+        public bool IsTrendsActive => ReferenceEquals(CurrentPage, Trends);
         public bool IsMostPlayedActive => ReferenceEquals(CurrentPage, MostPlayed);
         public bool IsRecapActive => ReferenceEquals(CurrentPage, Recap);
 
         public ICommand ShowHomeCommand { get; }
+        public ICommand ShowTrendsCommand { get; }
         public ICommand ShowMostPlayedCommand { get; }
         public ICommand ShowRecapCommand { get; }
 
@@ -55,10 +59,20 @@ namespace Astra.Views
             this.settings = settings;
 
             Home = new HomeViewModel(plugin, settings);
+            Trends = new TrendsViewModel(plugin, settings);
             MostPlayed = new MostPlayedViewModel(plugin, settings);
             Recap = new RecapViewModel(plugin, settings);
 
+            // Preserves Home's year context when navigating via "View Trends ->" (spec section 14):
+            // Home / 2025 -> Trends / Month / 2025, not whatever year Trends last happened to show.
+            Home.ViewTrendsRequested += targetYear =>
+            {
+                Trends.ShowMonthlyTrendForYear(targetYear);
+                CurrentPage = Trends;
+            };
+
             ShowHomeCommand = new RelayCommand(_ => CurrentPage = Home);
+            ShowTrendsCommand = new RelayCommand(_ => CurrentPage = Trends);
             ShowMostPlayedCommand = new RelayCommand(_ => CurrentPage = MostPlayed);
             ShowRecapCommand = new RelayCommand(_ => CurrentPage = Recap);
 
