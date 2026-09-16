@@ -15,5 +15,7 @@ namespace Astra.Models
         public StreakStats Streaks { get; set; }
         public HourStats Hours { get; set; }
         public WeekdayHourHeatmap WeekdayHours { get; set; }
+        public PlaytimeConcentrationStats Concentration { get; set; }
+        public GameRotationStats Rotation { get; set; }
     }
 }

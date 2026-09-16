@@ -276,6 +276,104 @@ namespace Astra.Tests
         }
 
         [Fact]
+        public void Concentration_Top1Share_IsBusiestGameOverTotal()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameA = Guid.NewGuid();
+            var gameB = Guid.NewGuid();
+            db.InsertSession(gameA, new DateTime(2026, 5, 1), 7500); // 75%
+            db.InsertSession(gameB, new DateTime(2026, 5, 2), 2500); // 25%
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 5, 1), new DateTime(2026, 5, 3));
+
+            Assert.Equal(2, result.Concentration.TotalGamesTouched);
+            Assert.Equal(75.0, result.Concentration.Top1SharePercent);
+            Assert.Equal(100.0, result.Concentration.Top3SharePercent); // only 2 games exist, caps at 100%
+        }
+
+        [Fact]
+        public void Concentration_FewerThanTenGames_TopSharesCapAtOneHundred()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 5, 1), 1000);
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 5, 1), new DateTime(2026, 5, 2));
+
+            Assert.Equal(1, result.Concentration.TotalGamesTouched);
+            Assert.Equal(100.0, result.Concentration.Top1SharePercent);
+            Assert.Equal(100.0, result.Concentration.Top10SharePercent);
+        }
+
+        [Fact]
+        public void Concentration_EmptyRange_ZeroSharesNotNaN()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 1, 1), new DateTime(2026, 2, 1));
+
+            Assert.Equal(0, result.Concentration.TotalGamesTouched);
+            Assert.Equal(0, result.Concentration.Top1SharePercent);
+        }
+
+        [Fact]
+        public void Rotation_NewGame_HasNoSessionBeforeRangeStart()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 5, 10), 1000); // first-ever session is inside the range
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 5, 1), new DateTime(2026, 6, 1));
+
+            Assert.Equal(1, result.Rotation.GamesTouched);
+            Assert.Equal(1, result.Rotation.NewGames);
+            Assert.Equal(0, result.Rotation.ReturningGames);
+        }
+
+        [Fact]
+        public void Rotation_ReturningGame_HasPriorSessionBeforeRangeStart()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 1, 1), 500); // played before the range
+            db.InsertSession(game, new DateTime(2026, 5, 10), 1000); // and again inside the range
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 5, 1), new DateTime(2026, 6, 1));
+
+            Assert.Equal(1, result.Rotation.GamesTouched);
+            Assert.Equal(0, result.Rotation.NewGames);
+            Assert.Equal(1, result.Rotation.ReturningGames);
+        }
+
+        [Fact]
+        public void Rotation_DaysWithMultipleGames_CountsOnlyDaysWithMoreThanOneDistinctGame()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameA = Guid.NewGuid();
+            var gameB = Guid.NewGuid();
+            db.InsertSession(gameA, new DateTime(2026, 5, 1, 9, 0, 0), 100);
+            db.InsertSession(gameB, new DateTime(2026, 5, 1, 20, 0, 0), 100); // 2 games on May 1
+            db.InsertSession(gameA, new DateTime(2026, 5, 2, 9, 0, 0), 100); // 1 game on May 2
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 5, 1), new DateTime(2026, 5, 3));
+
+            Assert.Equal(1, result.Rotation.DaysWithMultipleGames);
+        }
+
+        [Fact]
+        public void Rotation_EmptyRange_AllZero()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 1, 1), new DateTime(2026, 2, 1));
+
+            Assert.Equal(0, result.Rotation.GamesTouched);
+            Assert.Equal(0, result.Rotation.NewGames);
+            Assert.Equal(0, result.Rotation.ReturningGames);
+            Assert.Equal(0, result.Rotation.DaysWithMultipleGames);
+        }
+
+        [Fact]
         public void SessionStats_AverageSessionsPerActiveDay_DividesByDistinctDaysNotTotalDays()
         {
             var db = TestDatabaseFactory.CreateTemp();

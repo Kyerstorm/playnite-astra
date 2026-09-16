@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Data.SQLite;
 
 namespace Astra.Data
@@ -267,6 +268,47 @@ namespace Astra.Data
 
                 return DateTime.ParseExact((string)result, TimestampFormat, System.Globalization.CultureInfo.InvariantCulture).Year;
             }
+        }
+
+        /// <summary>Earliest recorded session per game, for only the given games - backs Game Rotation's
+        /// "new vs returning" distinction without ever scanning the full Sessions table. Empty/null
+        /// input short-circuits to an empty result rather than issuing a query with no candidates.</summary>
+        public Dictionary<Guid, DateTime> GetEarliestSessionDates(IEnumerable<Guid> gameIds)
+        {
+            var ids = gameIds?.Distinct().ToList() ?? new List<Guid>();
+            var results = new Dictionary<Guid, DateTime>();
+
+            if (ids.Count == 0)
+            {
+                return results;
+            }
+
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                var paramNames = ids.Select((id, i) => "@id" + i).ToList();
+                command.CommandText = $@"
+                    SELECT GameId, MIN(StartedAt)
+                    FROM Sessions
+                    WHERE GameId IN ({string.Join(",", paramNames)})
+                    GROUP BY GameId;
+                ";
+                for (var i = 0; i < ids.Count; i++)
+                {
+                    command.Parameters.AddWithValue(paramNames[i], ids[i].ToString());
+                }
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        results[Guid.Parse(reader.GetString(0))] =
+                            DateTime.ParseExact(reader.GetString(1), TimestampFormat, System.Globalization.CultureInfo.InvariantCulture);
+                    }
+                }
+            }
+
+            return results;
         }
 
         public int GetSessionCount()

@@ -482,6 +482,73 @@
                         </Grid>
                     </StackPanel>
                 </Border>
+
+                <!-- Playtime Concentration + Game Rotation - the only sections that touch game-level
+                     data, and only ever as aggregate counts/shares. Never game names, covers, or a
+                     ranking - Most Played owns "which games?" (spec sections 17, 18, 29). -->
+                <Grid Margin="0,0,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource AnalyticsCard}">
+                        <StackPanel>
+                            <TextBlock Text="PLAYTIME CONCENTRATION" Style="{StaticResource SectionLabel}" Margin="0,0,0,12" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="TOP 1" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Concentration.Top1SharePercent, StringFormat='{}{0:0.#}%'}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="TOP 3" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Concentration.Top3SharePercent, StringFormat='{}{0:0.#}%'}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="TOP 5" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Concentration.Top5SharePercent, StringFormat='{}{0:0.#}%'}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="3">
+                                    <TextBlock Text="TOP 10" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Concentration.Top10SharePercent, StringFormat='{}{0:0.#}%'}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                            </Grid>
+                            <TextBlock Margin="0,14,0,0" FontSize="11" Opacity="0.6">
+                                <Run Text="{Binding Analytics.Concentration.TotalGamesTouched, Mode=OneWay}" /><Run Text=" games touched" />
+                            </TextBlock>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource AnalyticsCard}">
+                        <StackPanel>
+                            <TextBlock Text="GAME ROTATION" Style="{StaticResource SectionLabel}" Margin="0,0,0,12" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" /><ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Grid.Column="0">
+                                    <TextBlock Text="TOUCHED" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Rotation.GamesTouched}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1">
+                                    <TextBlock Text="NEW" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Rotation.NewGames}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2">
+                                    <TextBlock Text="RETURNING" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Rotation.ReturningGames}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="3">
+                                    <TextBlock Text="MULTI-GAME DAYS" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Rotation.DaysWithMultipleGames}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
             </StackPanel>
         </ScrollViewer>
     </Grid>

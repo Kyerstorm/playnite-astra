@@ -34,8 +34,79 @@ namespace Astra.Services
                 SessionLengths = BuildSessionLengthBuckets(sessions),
                 Streaks = BuildStreaks(sessions),
                 Hours = BuildHourStats(sessions),
-                WeekdayHours = BuildWeekdayHourHeatmap(sessions)
+                WeekdayHours = BuildWeekdayHourHeatmap(sessions),
+                Concentration = BuildConcentration(sessions),
+                Rotation = BuildRotation(sessions, start)
             };
+        }
+
+        internal static PlaytimeConcentrationStats BuildConcentration(List<Models.Session> sessions)
+        {
+            var stats = new PlaytimeConcentrationStats();
+
+            if (sessions.Count == 0)
+            {
+                return stats;
+            }
+
+            var byGame = sessions
+                .GroupBy(s => s.GameId)
+                .Select(g => g.Sum(s => s.DurationSeconds))
+                .OrderByDescending(seconds => seconds)
+                .ToList();
+
+            stats.TotalGamesTouched = byGame.Count;
+
+            var total = byGame.Sum();
+            if (total > 0)
+            {
+                stats.Top1SharePercent = SharePercent(byGame, 1, total);
+                stats.Top3SharePercent = SharePercent(byGame, 3, total);
+                stats.Top5SharePercent = SharePercent(byGame, 5, total);
+                stats.Top10SharePercent = SharePercent(byGame, 10, total);
+            }
+
+            return stats;
+        }
+
+        private static double SharePercent(List<long> gamesSortedDescending, int topN, long total)
+        {
+            return gamesSortedDescending.Take(topN).Sum() * 100.0 / total;
+        }
+
+        /// <summary>Needs one extra bounded query (earliest session date per game touched in this
+        /// range) to tell "new" from "returning" - still O(distinct games in range), never a full
+        /// table scan.</summary>
+        private GameRotationStats BuildRotation(List<Models.Session> sessions, DateTime rangeStart)
+        {
+            var stats = new GameRotationStats();
+
+            if (sessions.Count == 0)
+            {
+                return stats;
+            }
+
+            var touchedGameIds = sessions.Select(s => s.GameId).Distinct().ToList();
+            stats.GamesTouched = touchedGameIds.Count;
+
+            var earliestDates = database.GetEarliestSessionDates(touchedGameIds);
+            foreach (var gameId in touchedGameIds)
+            {
+                if (earliestDates.TryGetValue(gameId, out var earliest) && earliest < rangeStart)
+                {
+                    stats.ReturningGames++;
+                }
+                else
+                {
+                    stats.NewGames++;
+                }
+            }
+
+            stats.DaysWithMultipleGames = sessions
+                .GroupBy(s => s.StartedAt.Date)
+                .Count(day => day.Select(s => s.GameId).Distinct().Count() > 1);
+
+            return stats;
         }
 
         /// <summary>Fixed 3-hour bucket boundaries for the weekday x hour heatmap - spec section 13.</summary>
