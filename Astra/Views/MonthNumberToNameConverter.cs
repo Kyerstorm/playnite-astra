@@ -12,7 +12,8 @@ namespace Astra.Views
         {
             if (value is int month && month >= 1 && month <= 12)
             {
-                return new DateTime(2000, month, 1).ToString("MMMM", CultureInfo.InvariantCulture);
+                var format = string.Equals(parameter as string, "short", StringComparison.OrdinalIgnoreCase) ? "MMM" : "MMMM";
+                return new DateTime(2000, month, 1).ToString(format, CultureInfo.InvariantCulture);
             }
 
             return "—";

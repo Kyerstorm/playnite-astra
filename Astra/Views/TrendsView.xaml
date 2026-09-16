@@ -549,6 +549,95 @@
                         </StackPanel>
                     </Border>
                 </Grid>
+
+                <!-- Year-over-Year comparison - purely numerical, no red/green or better/worse framing
+                     (spec section 16). Only shown for Month/Year granularity, where a specific year is
+                     meaningfully in view. -->
+                <Border Style="{StaticResource AnalyticsCard}"
+                        Visibility="{Binding IsYearComparisonVisible, Converter={StaticResource BoolToVisibilityConverter}}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource SectionLabel}" Margin="0,0,0,12">
+                            <Run Text="{Binding YearComparison.Current.Year, Mode=OneWay}" /><Run Text=" VS " /><Run Text="{Binding YearComparison.Previous.Year, Mode=OneWay}" />
+                        </TextBlock>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                                <RowDefinition />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding YearComparison.Previous.Year}" FontSize="11" Opacity="0.6" HorizontalAlignment="Center" Margin="0,0,0,6" />
+                            <TextBlock Grid.Row="0" Grid.Column="2" Text="{Binding YearComparison.Current.Year}" FontSize="11" Opacity="0.6" HorizontalAlignment="Center" Margin="0,0,0,6" />
+
+                            <TextBlock Grid.Row="1" Grid.Column="0" Text="Playtime" FontSize="12" Opacity="0.7" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding YearComparison.Previous.PlaytimeSeconds, Converter={StaticResource SecondsToHoursMinutesConverter}}" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                            <TextBlock Grid.Row="1" Grid.Column="2" Text="{Binding YearComparison.Current.PlaytimeSeconds, Converter={StaticResource SecondsToHoursMinutesConverter}}" HorizontalAlignment="Center" FontWeight="SemiBold" />
+
+                            <TextBlock Grid.Row="2" Grid.Column="0" Text="Sessions" FontSize="12" Opacity="0.7" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding YearComparison.Previous.SessionCount}" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                            <TextBlock Grid.Row="2" Grid.Column="2" Text="{Binding YearComparison.Current.SessionCount}" HorizontalAlignment="Center" FontWeight="SemiBold" />
+
+                            <TextBlock Grid.Row="3" Grid.Column="0" Text="Active days" FontSize="12" Opacity="0.7" VerticalAlignment="Center" />
+                            <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding YearComparison.Previous.ActiveDays}" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                            <TextBlock Grid.Row="3" Grid.Column="2" Text="{Binding YearComparison.Current.ActiveDays}" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                        </Grid>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="140" />
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="Games touched" FontSize="12" Opacity="0.7" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{Binding YearComparison.Previous.GamesTouched}" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                            <TextBlock Grid.Column="2" Text="{Binding YearComparison.Current.GamesTouched}" HorizontalAlignment="Center" FontWeight="SemiBold" />
+                        </Grid>
+
+                        <!-- Grouped monthly bars: previous year (dim) + current year (accent), both
+                             normalized to the same per-month scale (YearComparisonMonthPoint.*Fraction). -->
+                        <ItemsControl ItemsSource="{Binding YearComparison.Months}">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Rows="1" Columns="12" Height="90" />
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <StackPanel>
+                                        <Grid Height="70" Margin="2,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="*" />
+                                            </Grid.ColumnDefinitions>
+                                            <Grid Grid.Column="0" Margin="0,0,1,0">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="{Binding PreviousFraction, Converter={StaticResource BarFractionToGridLengthConverter}, ConverterParameter=remainder}" />
+                                                    <RowDefinition Height="{Binding PreviousFraction, Converter={StaticResource BarFractionToGridLengthConverter}}" />
+                                                </Grid.RowDefinitions>
+                                                <Border Grid.Row="1" Background="{DynamicResource NormalBorderBrush}" CornerRadius="2" />
+                                            </Grid>
+                                            <Grid Grid.Column="1" Margin="1,0,0,0">
+                                                <Grid.RowDefinitions>
+                                                    <RowDefinition Height="{Binding CurrentFraction, Converter={StaticResource BarFractionToGridLengthConverter}, ConverterParameter=remainder}" />
+                                                    <RowDefinition Height="{Binding CurrentFraction, Converter={StaticResource BarFractionToGridLengthConverter}}" />
+                                                </Grid.RowDefinitions>
+                                                <Border Grid.Row="1" Style="{StaticResource BarTrack}" Height="Auto" VerticalAlignment="Stretch" />
+                                            </Grid>
+                                        </Grid>
+                                        <TextBlock Text="{Binding Month, Converter={StaticResource MonthNumberToNameConverter}, ConverterParameter=short}"
+                                                   FontSize="9" Opacity="0.5" HorizontalAlignment="Center" Margin="0,3,0,0" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </Grid>

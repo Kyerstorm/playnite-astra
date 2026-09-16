@@ -46,6 +46,7 @@ namespace Astra.Views
                     NotifyPropertyChanged(nameof(IsWeekSelected));
                     NotifyPropertyChanged(nameof(IsMonthSelected));
                     NotifyPropertyChanged(nameof(IsYearSelected));
+                    NotifyPropertyChanged(nameof(IsYearComparisonVisible));
                     // Assigning SelectedRangeOption triggers Refresh() via its own setter - every
                     // granularity's default label is distinct, so this always fires even when the
                     // previous granularity happened to leave the same string selected.
@@ -126,6 +127,19 @@ namespace Astra.Views
             private set => SetValue(ref heatmapTrend, value);
         }
 
+        private YearComparison yearComparison;
+
+        /// <summary>Only meaningful in Month/Year granularity (spec section 20's "prioritise" list for
+        /// those modes) - still computed in Day/Week mode so the binding never sees null, but the card
+        /// is hidden there via IsYearComparisonVisible.</summary>
+        public YearComparison YearComparison
+        {
+            get => yearComparison;
+            private set => SetValue(ref yearComparison, value);
+        }
+
+        public bool IsYearComparisonVisible => Granularity == TrendGranularity.Month || Granularity == TrendGranularity.Year;
+
         public ICommand PreviousYearCommand { get; }
         public ICommand NextYearCommand { get; }
         public ICommand SelectDayCommand { get; }
@@ -167,6 +181,7 @@ namespace Astra.Views
             NotifyPropertyChanged(nameof(IsWeekSelected));
             NotifyPropertyChanged(nameof(IsMonthSelected));
             NotifyPropertyChanged(nameof(IsYearSelected));
+            NotifyPropertyChanged(nameof(IsYearComparisonVisible));
 
             if (wasAlreadyMonth && year == targetYear)
             {
@@ -189,6 +204,7 @@ namespace Astra.Views
 
             Analytics = plugin.PlaytimeInsightsService.Analyze(start, end);
             HeatmapTrend = plugin.TrendAggregationService.BuildTrend(TrendGranularity.Day, new DateTime(Year, 1, 1), new DateTime(Year + 1, 1, 1));
+            YearComparison = plugin.PlaytimeInsightsService.BuildYearComparison(Year);
         }
 
         private (DateTime start, DateTime end) ComputeRange()

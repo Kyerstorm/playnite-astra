@@ -328,6 +328,55 @@ namespace Astra.Services
             return stats;
         }
 
+        /// <summary>Selected year vs the immediately preceding year - two independent bounded
+        /// GetSessionsForYear queries (same method RecapAggregator uses), each folded into its own
+        /// summary + monthly breakdown. A year with no data still returns a real (all-zero) period
+        /// rather than null, so callers never need a missing-data branch.</summary>
+        public YearComparison BuildYearComparison(int year)
+        {
+            var current = BuildYearPeriod(year);
+            var previous = BuildYearPeriod(year - 1);
+
+            var months = new List<YearComparisonMonthPoint>();
+            for (var i = 0; i < 12; i++)
+            {
+                var currentSeconds = current.MonthlyPlaytimeSeconds[i];
+                var previousSeconds = previous.MonthlyPlaytimeSeconds[i];
+                var maxSeconds = Math.Max(currentSeconds, previousSeconds);
+
+                months.Add(new YearComparisonMonthPoint
+                {
+                    Month = i + 1,
+                    CurrentSeconds = currentSeconds,
+                    PreviousSeconds = previousSeconds,
+                    CurrentFraction = maxSeconds > 0 ? currentSeconds / (double)maxSeconds : 0,
+                    PreviousFraction = maxSeconds > 0 ? previousSeconds / (double)maxSeconds : 0
+                });
+            }
+
+            return new YearComparison { Current = current, Previous = previous, Months = months };
+        }
+
+        private YearComparisonPeriod BuildYearPeriod(int year)
+        {
+            var sessions = database.GetSessionsForYear(year);
+            var monthly = new long[12];
+            foreach (var session in sessions)
+            {
+                monthly[session.StartedAt.Month - 1] += session.DurationSeconds;
+            }
+
+            return new YearComparisonPeriod
+            {
+                Year = year,
+                PlaytimeSeconds = sessions.Sum(s => s.DurationSeconds),
+                SessionCount = sessions.Count,
+                ActiveDays = sessions.Select(s => s.StartedAt.Date).Distinct().Count(),
+                GamesTouched = sessions.Select(s => s.GameId).Distinct().Count(),
+                MonthlyPlaytimeSeconds = monthly.ToList()
+            };
+        }
+
         /// <summary>Longest run of calendar days each exactly one day apart, within a sorted, deduplicated
         /// list of active dates.</summary>
         private static int LongestConsecutiveRun(List<DateTime> sortedDistinctDays)

@@ -374,6 +374,60 @@ namespace Astra.Tests
         }
 
         [Fact]
+        public void YearComparison_ComputesCurrentAndPreviousYearIndependently()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameA = Guid.NewGuid();
+            var gameB = Guid.NewGuid();
+            db.InsertSession(gameA, new DateTime(2025, 6, 1, 9, 0, 0), 1000);
+            db.InsertSession(gameA, new DateTime(2025, 6, 2, 9, 0, 0), 1000);
+            db.InsertSession(gameB, new DateTime(2026, 1, 1, 9, 0, 0), 500);
+            db.InsertSession(gameB, new DateTime(2026, 1, 1, 20, 0, 0), 500);
+
+            var result = new PlaytimeInsightsService(db).BuildYearComparison(2026);
+
+            Assert.Equal(2026, result.Current.Year);
+            Assert.Equal(1000, result.Current.PlaytimeSeconds);
+            Assert.Equal(2, result.Current.SessionCount);
+            Assert.Equal(1, result.Current.ActiveDays);
+            Assert.Equal(1, result.Current.GamesTouched);
+            Assert.Equal(1000, result.Current.MonthlyPlaytimeSeconds[0]); // January
+
+            Assert.Equal(2025, result.Previous.Year);
+            Assert.Equal(2000, result.Previous.PlaytimeSeconds);
+            Assert.Equal(2, result.Previous.ActiveDays);
+            Assert.Equal(2000, result.Previous.MonthlyPlaytimeSeconds[5]); // June
+        }
+
+        [Fact]
+        public void YearComparison_MissingPreviousYear_ReturnsAllZeroPeriodNotNull()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 3, 1), 1000);
+
+            var result = new PlaytimeInsightsService(db).BuildYearComparison(2026);
+
+            Assert.NotNull(result.Previous);
+            Assert.Equal(2025, result.Previous.Year);
+            Assert.Equal(0, result.Previous.PlaytimeSeconds);
+            Assert.Equal(0, result.Previous.SessionCount);
+            Assert.Equal(12, result.Previous.MonthlyPlaytimeSeconds.Count);
+            Assert.All(result.Previous.MonthlyPlaytimeSeconds, m => Assert.Equal(0, m));
+        }
+
+        [Fact]
+        public void YearComparison_BothYearsEmpty_NoThrow()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = new PlaytimeInsightsService(db).BuildYearComparison(2026);
+
+            Assert.Equal(0, result.Current.PlaytimeSeconds);
+            Assert.Equal(0, result.Previous.PlaytimeSeconds);
+        }
+
+        [Fact]
         public void SessionStats_AverageSessionsPerActiveDay_DividesByDistinctDaysNotTotalDays()
         {
             var db = TestDatabaseFactory.CreateTemp();
