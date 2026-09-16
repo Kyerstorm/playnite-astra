@@ -1,3 +1,5 @@
+using System.Collections.Generic;
+
 namespace Astra.Models
 {
     /// <summary>Composite output of PlaytimeInsightsService.Analyze() for one date range - every
@@ -8,5 +10,8 @@ namespace Astra.Models
     {
         public GamingRhythmStats Rhythm { get; set; }
         public SessionStats Sessions { get; set; }
+        public WeekdayStats Weekday { get; set; }
+        public List<SessionLengthBucket> SessionLengths { get; set; }
+        public StreakStats Streaks { get; set; }
     }
 }

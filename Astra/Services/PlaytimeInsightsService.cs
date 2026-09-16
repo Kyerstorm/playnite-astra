@@ -29,8 +29,110 @@ namespace Astra.Services
             return new TrendAnalyticsResult
             {
                 Rhythm = BuildRhythm(sessions),
-                Sessions = BuildSessionStats(sessions)
+                Sessions = BuildSessionStats(sessions),
+                Weekday = BuildWeekdayStats(sessions),
+                SessionLengths = BuildSessionLengthBuckets(sessions),
+                Streaks = BuildStreaks(sessions)
             };
+        }
+
+        /// <summary>Inclusive-low/exclusive-high boundaries in seconds, and the label shown for each -
+        /// spec section 14's fixed bucket set. &lt;30m, 30m-1h, 1-2h, 2-4h, 4h+.</summary>
+        private static readonly (long LowerBoundSeconds, string Label)[] SessionLengthBucketBoundaries =
+        {
+            (0, "< 30m"),
+            (30 * 60, "30m-1h"),
+            (60 * 60, "1-2h"),
+            (2 * 60 * 60, "2-4h"),
+            (4 * 60 * 60, "4h+")
+        };
+
+        internal static WeekdayStats BuildWeekdayStats(List<Models.Session> sessions)
+        {
+            var buckets = new WeekdayBucket[7];
+            // Monday-first, matching every other weekday-ordered convention in Astra (spec section 23).
+            for (var i = 0; i < 7; i++)
+            {
+                buckets[i] = new WeekdayBucket { DayOfWeek = (DayOfWeek)(((int)DayOfWeek.Monday + i) % 7) };
+            }
+
+            foreach (var session in sessions)
+            {
+                var index = ((int)session.StartedAt.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
+                buckets[index].PlaytimeSeconds += session.DurationSeconds;
+                buckets[index].SessionCount++;
+            }
+
+            var maxSeconds = buckets.Max(b => b.PlaytimeSeconds);
+            if (maxSeconds > 0)
+            {
+                foreach (var bucket in buckets)
+                {
+                    bucket.BarFraction = bucket.PlaytimeSeconds / (double)maxSeconds;
+                }
+            }
+
+            return new WeekdayStats { Days = buckets.ToList() };
+        }
+
+        internal static List<SessionLengthBucket> BuildSessionLengthBuckets(List<Models.Session> sessions)
+        {
+            var counts = new int[SessionLengthBucketBoundaries.Length];
+
+            foreach (var session in sessions)
+            {
+                var bucketIndex = SessionLengthBucketBoundaries.Length - 1;
+                for (var i = 0; i < SessionLengthBucketBoundaries.Length - 1; i++)
+                {
+                    if (session.DurationSeconds < SessionLengthBucketBoundaries[i + 1].LowerBoundSeconds)
+                    {
+                        bucketIndex = i;
+                        break;
+                    }
+                }
+                counts[bucketIndex]++;
+            }
+
+            var total = sessions.Count;
+            var maxCount = counts.Length > 0 ? counts.Max() : 0;
+            var result = new List<SessionLengthBucket>();
+            for (var i = 0; i < SessionLengthBucketBoundaries.Length; i++)
+            {
+                result.Add(new SessionLengthBucket
+                {
+                    Label = SessionLengthBucketBoundaries[i].Label,
+                    SessionCount = counts[i],
+                    Percentage = total > 0 ? counts[i] * 100.0 / total : 0,
+                    BarFraction = maxCount > 0 ? counts[i] / (double)maxCount : 0
+                });
+            }
+
+            return result;
+        }
+
+        internal static StreakStats BuildStreaks(List<Models.Session> sessions)
+        {
+            var stats = new StreakStats();
+
+            if (sessions.Count == 0)
+            {
+                return stats;
+            }
+
+            var activeDays = sessions.Select(s => s.StartedAt.Date).Distinct().OrderBy(d => d).ToList();
+            stats.LongestStreakDays = LongestConsecutiveRun(activeDays);
+            stats.CurrentStreakDays = TrailingConsecutiveRun(activeDays);
+
+            var byWeek = sessions
+                .GroupBy(s => TrendAggregationService.StartOfWeek(s.StartedAt.Date))
+                .Select(g => new { WeekStart = g.Key, TotalSeconds = g.Sum(s => s.DurationSeconds) })
+                .OrderByDescending(w => w.TotalSeconds)
+                .First();
+
+            stats.MostActiveWeekStart = byWeek.WeekStart;
+            stats.MostActiveWeekSeconds = byWeek.TotalSeconds;
+
+            return stats;
         }
 
         internal static GamingRhythmStats BuildRhythm(List<Models.Session> sessions)

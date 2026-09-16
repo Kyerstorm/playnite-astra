@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using Astra.Models;
 using Astra.Services;
 using Xunit;
@@ -111,6 +112,109 @@ namespace Astra.Tests
             Assert.Equal(28080, result.Sessions.LongestSessionSeconds);
             Assert.Equal(480, result.Sessions.ShortestSessionSeconds);
             Assert.Equal(14280, result.Sessions.AverageSessionSeconds);
+        }
+
+        [Fact]
+        public void Weekday_AlwaysReturnsSevenDaysMondayFirst()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 1, 1), new DateTime(2026, 2, 1));
+
+            Assert.Equal(7, result.Weekday.Days.Count);
+            Assert.Equal(DayOfWeek.Monday, result.Weekday.Days[0].DayOfWeek);
+            Assert.Equal(DayOfWeek.Sunday, result.Weekday.Days[6].DayOfWeek);
+        }
+
+        [Fact]
+        public void Weekday_SumsPlaytimeIntoCorrectDayRegardlessOfWhichCalendarWeek()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            // Two different Saturdays, three weeks apart.
+            db.InsertSession(game, new DateTime(2026, 3, 7), 1000); // Saturday
+            db.InsertSession(game, new DateTime(2026, 3, 28), 2000); // Saturday
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 3, 1), new DateTime(2026, 4, 1));
+
+            var saturday = result.Weekday.Days.Single(d => d.DayOfWeek == DayOfWeek.Saturday);
+            Assert.Equal(3000, saturday.PlaytimeSeconds);
+            Assert.Equal(2, saturday.SessionCount);
+        }
+
+        [Theory]
+        [InlineData(0, "< 30m")]
+        [InlineData(1799, "< 30m")]
+        [InlineData(1800, "30m-1h")]
+        [InlineData(3599, "30m-1h")]
+        [InlineData(3600, "1-2h")]
+        [InlineData(7199, "1-2h")]
+        [InlineData(7200, "2-4h")]
+        [InlineData(14399, "2-4h")]
+        [InlineData(14400, "4h+")]
+        [InlineData(50000, "4h+")]
+        public void SessionLengthBuckets_BoundariesAreInclusiveLowExclusiveHigh(long durationSeconds, string expectedLabel)
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 5, 1), durationSeconds);
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 5, 1), new DateTime(2026, 5, 2));
+
+            var bucket = result.SessionLengths.Single(b => b.SessionCount == 1);
+            Assert.Equal(expectedLabel, bucket.Label);
+        }
+
+        [Fact]
+        public void SessionLengthBuckets_PercentagesSumToOneHundred()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 5, 1, 1, 0, 0), 100);
+            db.InsertSession(game, new DateTime(2026, 5, 1, 2, 0, 0), 2000);
+            db.InsertSession(game, new DateTime(2026, 5, 1, 3, 0, 0), 5000);
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 5, 1), new DateTime(2026, 5, 2));
+
+            Assert.Equal(5, result.SessionLengths.Count);
+            Assert.Equal(100.0, result.SessionLengths.Sum(b => b.Percentage), 5);
+        }
+
+        [Fact]
+        public void SessionLengthBuckets_EmptyRange_AllZeroPercentNotNaN()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 1, 1), new DateTime(2026, 2, 1));
+
+            Assert.All(result.SessionLengths, b => Assert.Equal(0, b.Percentage));
+            Assert.All(result.SessionLengths, b => Assert.Equal(0, b.SessionCount));
+        }
+
+        [Fact]
+        public void Streaks_MostActiveWeek_PicksHighestTotalPlaytimeWeek()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 3, 2), 1000); // week of Mon 2026-03-02
+            db.InsertSession(game, new DateTime(2026, 3, 9), 5000); // week of Mon 2026-03-09
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 3, 1), new DateTime(2026, 4, 1));
+
+            Assert.Equal(new DateTime(2026, 3, 9), result.Streaks.MostActiveWeekStart);
+            Assert.Equal(5000, result.Streaks.MostActiveWeekSeconds);
+        }
+
+        [Fact]
+        public void Streaks_EmptyRange_NullMostActiveWeekAndZeroStreaks()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 1, 1), new DateTime(2026, 2, 1));
+
+            Assert.Null(result.Streaks.MostActiveWeekStart);
+            Assert.Equal(0, result.Streaks.LongestStreakDays);
+            Assert.Equal(0, result.Streaks.CurrentStreakDays);
         }
 
         [Fact]

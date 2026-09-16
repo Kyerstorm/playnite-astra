@@ -138,7 +138,10 @@ namespace Astra.Services
         /// existing convention was found in RecapAggregator/SessionTracker to reuse (see FEATURES.md/
         /// CLAUDE.md research notes), so ISO-8601 Monday-start was chosen since it's locale-independent
         /// (unlike CultureInfo.CurrentCulture.DateTimeFormat.FirstDayOfWeek).</summary>
-        private static DateTime StartOfWeek(DateTime date)
+        /// <summary>Internal (not private) so PlaytimeInsightsService's "most active week" can reuse the
+        /// exact same Monday-start convention rather than duplicating it - see spec section 23's
+        /// requirement that week start stay consistent everywhere Astra buckets by week.</summary>
+        internal static DateTime StartOfWeek(DateTime date)
         {
             var diff = ((int)date.DayOfWeek - (int)DayOfWeek.Monday + 7) % 7;
             return date.AddDays(-diff);
