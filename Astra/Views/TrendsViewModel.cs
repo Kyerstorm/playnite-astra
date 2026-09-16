@@ -114,6 +114,18 @@ namespace Astra.Views
             private set => SetValue(ref analytics, value);
         }
 
+        private TrendResult heatmapTrend;
+
+        /// <summary>Always one full calendar year of daily buckets for the currently-scoped Year
+        /// (settings.LastSelectedYear), independent of the main chart's granularity - a calendar
+        /// heatmap for "last 7 days" or a 10-year "All years" range wouldn't be meaningful, so it
+        /// stays pinned to a single year the way Home's mini-chart does (spec sections 10, 20).</summary>
+        public TrendResult HeatmapTrend
+        {
+            get => heatmapTrend;
+            private set => SetValue(ref heatmapTrend, value);
+        }
+
         public ICommand PreviousYearCommand { get; }
         public ICommand NextYearCommand { get; }
         public ICommand SelectDayCommand { get; }
@@ -176,6 +188,7 @@ namespace Astra.Views
             PreviousPeriodDeltaSeconds = Trend.TotalPlaytimeSeconds - previousTrend.TotalPlaytimeSeconds;
 
             Analytics = plugin.PlaytimeInsightsService.Analyze(start, end);
+            HeatmapTrend = plugin.TrendAggregationService.BuildTrend(TrendGranularity.Day, new DateTime(Year, 1, 1), new DateTime(Year + 1, 1, 1));
         }
 
         private (DateTime start, DateTime end) ComputeRange()

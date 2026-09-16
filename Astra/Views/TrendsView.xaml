@@ -260,6 +260,15 @@
                     </Border>
                 </Grid>
 
+                <!-- Calendar activity heatmap - always one full year (TrendsViewModel.HeatmapTrend),
+                     independent of the main chart's Day/Week/Month/Year selection (spec section 10). -->
+                <Border Style="{StaticResource AnalyticsCard}">
+                    <StackPanel>
+                        <TextBlock Text="ACTIVITY" Style="{StaticResource SectionLabel}" Margin="0,0,0,10" />
+                        <local:ActivityHeatmapControl Trend="{Binding HeatmapTrend}" Height="120" />
+                    </StackPanel>
+                </Border>
+
                 <!-- Weekday distribution + Session length distribution -->
                 <Grid Margin="0,0,0,0">
                     <Grid.ColumnDefinitions>

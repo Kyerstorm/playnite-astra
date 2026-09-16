@@ -260,6 +260,21 @@ namespace Astra.Tests
         }
 
         [Fact]
+        public void BuildTrend_Day_LeapYearHas366DailyBuckets()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2024, 2, 29), 1234); // 2024 is a leap year
+
+            var result = new TrendAggregationService(db)
+                .BuildTrend(TrendGranularity.Day, new DateTime(2024, 1, 1), new DateTime(2025, 1, 1));
+
+            Assert.Equal(366, result.Points.Count);
+            var leapDay = result.Points.Single(p => p.PeriodStart == new DateTime(2024, 2, 29));
+            Assert.Equal(1234, leapDay.PlaytimeSeconds);
+        }
+
+        [Fact]
         public void BuildMonthlyTrendForYear_MatchesBuildTrendForSameCalendarYear()
         {
             var db = TestDatabaseFactory.CreateTemp();
