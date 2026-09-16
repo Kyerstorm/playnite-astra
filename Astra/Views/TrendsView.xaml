@@ -97,6 +97,7 @@
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
             </Grid.ColumnDefinitions>
 
             <Border Grid.Column="0" Style="{StaticResource StatCard}">
@@ -119,6 +120,12 @@
                         <Run Text="{Binding Trend.ActivePeriods, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding Trend.TotalPeriods, Mode=OneWay}" />
                     </TextBlock>
                     <TextBlock Text="ACTIVE PERIODS" Style="{StaticResource SectionLabel}" Margin="0,4,0,0" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="3" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Trend.SessionCount}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="SESSIONS" Style="{StaticResource SectionLabel}" Margin="0,4,0,0" />
                 </StackPanel>
             </Border>
         </Grid>

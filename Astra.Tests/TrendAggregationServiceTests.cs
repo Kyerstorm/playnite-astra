@@ -212,6 +212,54 @@ namespace Astra.Tests
         }
 
         [Fact]
+        public void BuildTrend_SessionCount_CountsSessionsNotDuration()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 5, 1, 9, 0, 0), 1000);
+            db.InsertSession(game, new DateTime(2026, 5, 1, 20, 0, 0), 2000);
+            db.InsertSession(game, new DateTime(2026, 5, 2, 9, 0, 0), 500);
+
+            var result = new TrendAggregationService(db)
+                .BuildTrend(TrendGranularity.Day, new DateTime(2026, 5, 1), new DateTime(2026, 5, 3));
+
+            Assert.Equal(2, result.Points[0].SessionCount);
+            Assert.Equal(1, result.Points[1].SessionCount);
+            Assert.Equal(3, result.SessionCount);
+        }
+
+        [Fact]
+        public void BuildTrend_ActiveGameCount_CountsDistinctGamesPerBucket()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameA = Guid.NewGuid();
+            var gameB = Guid.NewGuid();
+            db.InsertSession(gameA, new DateTime(2026, 5, 1, 9, 0, 0), 1000);
+            db.InsertSession(gameA, new DateTime(2026, 5, 1, 12, 0, 0), 1000); // same game, same day
+            db.InsertSession(gameB, new DateTime(2026, 5, 1, 20, 0, 0), 1000);
+            db.InsertSession(gameA, new DateTime(2026, 5, 2, 9, 0, 0), 500); // only game on day 2
+
+            var result = new TrendAggregationService(db)
+                .BuildTrend(TrendGranularity.Day, new DateTime(2026, 5, 1), new DateTime(2026, 5, 3));
+
+            Assert.Equal(2, result.Points[0].ActiveGameCount);
+            Assert.Equal(1, result.Points[1].ActiveGameCount);
+        }
+
+        [Fact]
+        public void BuildTrend_ZeroBucket_HasZeroSessionAndGameCounts()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = new TrendAggregationService(db)
+                .BuildTrend(TrendGranularity.Month, new DateTime(2026, 1, 1), new DateTime(2026, 2, 1));
+
+            Assert.Equal(0, result.Points[0].SessionCount);
+            Assert.Equal(0, result.Points[0].ActiveGameCount);
+            Assert.Equal(0, result.SessionCount);
+        }
+
+        [Fact]
         public void BuildMonthlyTrendForYear_MatchesBuildTrendForSameCalendarYear()
         {
             var db = TestDatabaseFactory.CreateTemp();

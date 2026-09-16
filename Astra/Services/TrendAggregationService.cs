@@ -34,6 +34,7 @@ namespace Astra.Services
 
             var points = BuildEmptyBuckets(granularity, alignedStart, alignedEnd);
             var sessions = database.GetSessionsForDateRange(alignedStart, alignedEnd);
+            var gamesPerBucket = new HashSet<Guid>[points.Count];
 
             foreach (var session in sessions)
             {
@@ -41,14 +42,28 @@ namespace Astra.Services
                 if (index >= 0 && index < points.Count)
                 {
                     points[index].PlaytimeSeconds += session.DurationSeconds;
+                    points[index].SessionCount++;
+
+                    if (gamesPerBucket[index] == null)
+                    {
+                        gamesPerBucket[index] = new HashSet<Guid>();
+                    }
+                    gamesPerBucket[index].Add(session.GameId);
                 }
+            }
+
+            for (var i = 0; i < points.Count; i++)
+            {
+                points[i].ActiveGameCount = gamesPerBucket[i]?.Count ?? 0;
             }
 
             long total = 0;
             var activePeriods = 0;
+            var sessionCount = 0;
             foreach (var point in points)
             {
                 total += point.PlaytimeSeconds;
+                sessionCount += point.SessionCount;
                 if (point.PlaytimeSeconds > 0)
                 {
                     activePeriods++;
@@ -64,7 +79,8 @@ namespace Astra.Services
                 TotalPlaytimeSeconds = total,
                 AveragePlaytimeSeconds = points.Count > 0 ? (double)total / points.Count : 0,
                 ActivePeriods = activePeriods,
-                TotalPeriods = points.Count
+                TotalPeriods = points.Count,
+                SessionCount = sessionCount
             };
         }
 

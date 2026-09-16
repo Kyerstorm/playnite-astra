@@ -16,6 +16,7 @@ namespace Astra.Models
         public double AveragePlaytimeSeconds { get; set; }
         public int ActivePeriods { get; set; }
         public int TotalPeriods { get; set; }
+        public int SessionCount { get; set; }
 
         public List<TrendPoint> Points { get; set; } = new List<TrendPoint>();
 

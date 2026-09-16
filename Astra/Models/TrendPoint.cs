@@ -16,5 +16,11 @@ namespace Astra.Models
         public string Label { get; set; }
 
         public long PlaytimeSeconds { get; set; }
+
+        public int SessionCount { get; set; }
+
+        /// <summary>Distinct games with at least one session in this bucket - powers the calendar
+        /// heatmap's "games played" tooltip line and Game Rotation's "days with multiple games".</summary>
+        public int ActiveGameCount { get; set; }
     }
 }
