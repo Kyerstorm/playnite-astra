@@ -107,6 +107,13 @@ namespace Astra.Views
             private set => SetValue(ref previousPeriodDeltaSeconds, value);
         }
 
+        private TrendAnalyticsResult analytics;
+        public TrendAnalyticsResult Analytics
+        {
+            get => analytics;
+            private set => SetValue(ref analytics, value);
+        }
+
         public ICommand PreviousYearCommand { get; }
         public ICommand NextYearCommand { get; }
         public ICommand SelectDayCommand { get; }
@@ -167,6 +174,8 @@ namespace Astra.Views
             var previousStart = start - (end - start);
             var previousTrend = plugin.TrendAggregationService.BuildTrend(Granularity, previousStart, start);
             PreviousPeriodDeltaSeconds = Trend.TotalPlaytimeSeconds - previousTrend.TotalPlaytimeSeconds;
+
+            Analytics = plugin.PlaytimeInsightsService.Analyze(start, end);
         }
 
         private (DateTime start, DateTime end) ComputeRange()

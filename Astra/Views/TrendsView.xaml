@@ -11,6 +11,29 @@
 
             <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
             <local:SignedHoursDeltaConverter x:Key="SignedHoursDeltaConverter" />
+            <local:SecondsToHoursMinutesConverter x:Key="SecondsToHoursMinutesConverter" />
+            <local:MonthNumberToNameConverter x:Key="MonthNumberToNameConverter" />
+            <local:NullableEnumToStringConverter x:Key="NullableEnumToStringConverter" />
+
+            <!-- Two-column analytics card (Gaming Rhythm, Session Activity, ...) - a StatCard-styled
+                 border with a section title and a grid of label/value pairs. Reused for every
+                 non-chart analytics section added across the Trends extension phases. -->
+            <Style x:Key="AnalyticsCard" TargetType="Border" BasedOn="{StaticResource StatCard}">
+                <Setter Property="Padding" Value="18,16" />
+                <Setter Property="Margin" Value="6,6,6,10" />
+            </Style>
+            <Style x:Key="AnalyticsMetricLabel" TargetType="TextBlock" BasedOn="{StaticResource StatLabel}">
+                <Setter Property="Margin" Value="0,0,0,2" />
+            </Style>
+            <Style x:Key="AnalyticsMetricValue" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="18" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+            </Style>
+            <Style x:Key="AnalyticsMetricSubValue" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="Opacity" Value="0.55" />
+                <Setter Property="Margin" Value="0,1,0,0" />
+            </Style>
 
             <!-- Compact segmented control for Day/Week/Month/Year - same active/hover treatment as the
                  shell's own left-nav rows (NavRow/ActiveAccentBar in AstraShellView.xaml), reused here
@@ -40,8 +63,6 @@
 
     <Grid Margin="24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
@@ -91,54 +112,142 @@
                       ItemsSource="{Binding AvailableRangeOptions}" SelectedItem="{Binding SelectedRangeOption}" />
         </DockPanel>
 
-        <!-- Summary cards -->
-        <Grid Grid.Row="2" Margin="0,0,0,16">
-            <Grid.ColumnDefinitions>
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-                <ColumnDefinition Width="*" />
-            </Grid.ColumnDefinitions>
+        <!-- Everything below the header/controls scrolls as one column - the page is not meant to fit
+             in a single viewport (spec section 3), and every analytics section added across the
+             Trends extension phases is appended here. -->
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+            <StackPanel>
+                <!-- Summary cards -->
+                <Grid Margin="0,0,0,16">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
 
-            <Border Grid.Column="0" Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="{Binding Trend.TotalPlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" Style="{StaticResource StatValue}" />
-                    <TextBlock Text="TOTAL PLAYTIME" Style="{StaticResource SectionLabel}" Margin="0,4,0,0" />
-                    <TextBlock Text="{Binding PreviousPeriodDeltaSeconds, Converter={StaticResource SignedHoursDeltaConverter}}"
-                               FontSize="10" Opacity="0.55" Margin="0,4,0,0" />
-                </StackPanel>
-            </Border>
-            <Border Grid.Column="1" Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="{Binding Trend.AveragePlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" Style="{StaticResource StatValue}" />
-                    <TextBlock Text="AVERAGE / PERIOD" Style="{StaticResource SectionLabel}" Margin="0,4,0,0" />
-                </StackPanel>
-            </Border>
-            <Border Grid.Column="2" Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Style="{StaticResource StatValue}">
-                        <Run Text="{Binding Trend.ActivePeriods, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding Trend.TotalPeriods, Mode=OneWay}" />
-                    </TextBlock>
-                    <TextBlock Text="ACTIVE PERIODS" Style="{StaticResource SectionLabel}" Margin="0,4,0,0" />
-                </StackPanel>
-            </Border>
-            <Border Grid.Column="3" Style="{StaticResource StatCard}">
-                <StackPanel>
-                    <TextBlock Text="{Binding Trend.SessionCount}" Style="{StaticResource StatValue}" />
-                    <TextBlock Text="SESSIONS" Style="{StaticResource SectionLabel}" Margin="0,4,0,0" />
-                </StackPanel>
-            </Border>
-        </Grid>
+                    <Border Grid.Column="0" Style="{StaticResource StatCard}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Trend.TotalPlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" Style="{StaticResource StatValue}" />
+                            <TextBlock Text="TOTAL PLAYTIME" Style="{StaticResource SectionLabel}" Margin="0,4,0,0" />
+                            <TextBlock Text="{Binding PreviousPeriodDeltaSeconds, Converter={StaticResource SignedHoursDeltaConverter}}"
+                                       FontSize="10" Opacity="0.55" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="1" Style="{StaticResource StatCard}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Trend.AveragePlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" Style="{StaticResource StatValue}" />
+                            <TextBlock Text="AVERAGE / PERIOD" Style="{StaticResource SectionLabel}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="2" Style="{StaticResource StatCard}">
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource StatValue}">
+                                <Run Text="{Binding Trend.ActivePeriods, Mode=OneWay}" /><Run Text=" / " /><Run Text="{Binding Trend.TotalPeriods, Mode=OneWay}" />
+                            </TextBlock>
+                            <TextBlock Text="ACTIVE PERIODS" Style="{StaticResource SectionLabel}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                    <Border Grid.Column="3" Style="{StaticResource StatCard}">
+                        <StackPanel>
+                            <TextBlock Text="{Binding Trend.SessionCount}" Style="{StaticResource StatValue}" />
+                            <TextBlock Text="SESSIONS" Style="{StaticResource SectionLabel}" Margin="0,4,0,0" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
 
-        <TextBlock Grid.Row="3" Text="PLAYTIME" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
+                <TextBlock Text="PLAYTIME" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
 
-        <!-- Wide/shallow area chart, filling remaining page width - target ~2.5:1 to 4:1, enforced via
-             AspectRatioHeightConverter (ratio = height/width) rather than a fixed pixel height, so it
-             stays proportional across 1080p/1440p/4K instead of stretching arbitrarily tall. -->
-        <Border Grid.Row="4" Style="{StaticResource StatCard}" Padding="16" VerticalAlignment="Top"
-                Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource AspectRatioHeightConverter}, ConverterParameter=0.32}"
-                MinHeight="160" MaxHeight="420">
-            <local:TrendChartControl Trend="{Binding Trend}" />
-        </Border>
+                <!-- Wide/shallow area chart - target ~2.5:1 to 4:1, enforced via AspectRatioHeightConverter
+                     (ratio = height/width) rather than a fixed pixel height, so it stays proportional
+                     across 1080p/1440p/4K instead of stretching arbitrarily tall. -->
+                <Border Style="{StaticResource StatCard}" Padding="16" VerticalAlignment="Top"
+                        Height="{Binding ActualWidth, RelativeSource={RelativeSource Self}, Converter={StaticResource AspectRatioHeightConverter}, ConverterParameter=0.32}"
+                        MinHeight="160" MaxHeight="420">
+                    <local:TrendChartControl Trend="{Binding Trend}" />
+                </Border>
+
+                <!-- Gaming Rhythm + Session Activity: two columns on wide layouts, per spec section 30 -->
+                <Grid Margin="0,16,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+
+                    <Border Grid.Column="0" Style="{StaticResource AnalyticsCard}">
+                        <StackPanel>
+                            <TextBlock Text="GAMING RHYTHM" Style="{StaticResource SectionLabel}" Margin="0,0,0,12" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,14">
+                                    <TextBlock Text="BUSIEST DAY" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Rhythm.BusiestDayOfWeek, Converter={StaticResource NullableEnumToStringConverter}}" Style="{StaticResource AnalyticsMetricValue}" />
+                                    <TextBlock Text="{Binding Analytics.Rhythm.BusiestDayOfWeekSeconds, Converter={StaticResource SecondsToHoursMinutesConverter}}" Style="{StaticResource AnalyticsMetricSubValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,14">
+                                    <TextBlock Text="BUSIEST MONTH" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Rhythm.BusiestMonth, Converter={StaticResource MonthNumberToNameConverter}}" Style="{StaticResource AnalyticsMetricValue}" />
+                                    <TextBlock Text="{Binding Analytics.Rhythm.BusiestMonthSeconds, Converter={StaticResource SecondsToHoursMinutesConverter}}" Style="{StaticResource AnalyticsMetricSubValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="0">
+                                    <TextBlock Text="LONGEST STREAK" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Rhythm.LongestStreakDays, StringFormat='{}{0} days'}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="1">
+                                    <TextBlock Text="CURRENT STREAK" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Rhythm.CurrentStreakDays, StringFormat='{}{0} days'}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Grid.Column="1" Style="{StaticResource AnalyticsCard}">
+                        <StackPanel>
+                            <TextBlock Text="SESSION ACTIVITY" Style="{StaticResource SectionLabel}" Margin="0,0,0,12" />
+                            <Grid>
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <Grid.RowDefinitions>
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                    <RowDefinition />
+                                </Grid.RowDefinitions>
+
+                                <StackPanel Grid.Row="0" Grid.Column="0" Margin="0,0,0,14">
+                                    <TextBlock Text="TOTAL SESSIONS" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Sessions.TotalSessions}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="0" Grid.Column="1" Margin="0,0,0,14">
+                                    <TextBlock Text="AVERAGE SESSION" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Sessions.AverageSessionSeconds, Converter={StaticResource SecondsToHoursMinutesConverter}}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="0" Margin="0,0,0,14">
+                                    <TextBlock Text="LONGEST SESSION" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Sessions.LongestSessionSeconds, Converter={StaticResource SecondsToHoursMinutesConverter}}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="1" Grid.Column="1" Margin="0,0,0,14">
+                                    <TextBlock Text="SHORTEST SESSION" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Sessions.ShortestSessionSeconds, Converter={StaticResource SecondsToHoursMinutesConverter}}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                                <StackPanel Grid.Row="2" Grid.Column="0">
+                                    <TextBlock Text="SESSIONS / ACTIVE DAY" Style="{StaticResource AnalyticsMetricLabel}" />
+                                    <TextBlock Text="{Binding Analytics.Sessions.AverageSessionsPerActiveDay, StringFormat='{}{0:0.0}'}" Style="{StaticResource AnalyticsMetricValue}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
     </Grid>
 </UserControl>
