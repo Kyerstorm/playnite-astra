@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Windows.Input;
 using Astra.Models;
+using Astra.Services;
 
 namespace Astra.Views
 {
@@ -140,6 +141,13 @@ namespace Astra.Views
 
         public bool IsYearComparisonVisible => Granularity == TrendGranularity.Month || Granularity == TrendGranularity.Year;
 
+        private List<string> gamingYearSummary;
+        public List<string> GamingYearSummary
+        {
+            get => gamingYearSummary;
+            private set => SetValue(ref gamingYearSummary, value);
+        }
+
         public ICommand PreviousYearCommand { get; }
         public ICommand NextYearCommand { get; }
         public ICommand SelectDayCommand { get; }
@@ -205,6 +213,7 @@ namespace Astra.Views
             Analytics = plugin.PlaytimeInsightsService.Analyze(start, end);
             HeatmapTrend = plugin.TrendAggregationService.BuildTrend(TrendGranularity.Day, new DateTime(Year, 1, 1), new DateTime(Year + 1, 1, 1));
             YearComparison = plugin.PlaytimeInsightsService.BuildYearComparison(Year);
+            GamingYearSummary = GamingYearSummaryBuilder.Build(Analytics, Analytics?.Concentration);
         }
 
         private (DateTime start, DateTime end) ComputeRange()

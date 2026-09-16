@@ -638,6 +638,21 @@
                         </ItemsControl>
                     </StackPanel>
                 </Border>
+
+                <!-- Your Gaming Year - deterministic sentences translating already-computed statistics
+                     into plain language. No AI, no subjective/motivational language (spec section 19). -->
+                <Border Style="{StaticResource AnalyticsCard}" Margin="6,6,6,20">
+                    <StackPanel>
+                        <TextBlock Text="YOUR GAMING YEAR" Style="{StaticResource SectionLabel}" Margin="0,0,0,10" />
+                        <ItemsControl ItemsSource="{Binding GamingYearSummary}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" FontSize="13" Margin="0,3" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </Grid>

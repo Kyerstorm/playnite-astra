@@ -323,6 +323,7 @@ namespace Astra.Services
             stats.ShortestSessionSeconds = sessions.Min(s => s.DurationSeconds);
 
             var activeDayCount = sessions.Select(s => s.StartedAt.Date).Distinct().Count();
+            stats.ActiveDays = activeDayCount;
             stats.AverageSessionsPerActiveDay = activeDayCount > 0 ? (double)sessions.Count / activeDayCount : 0;
 
             return stats;

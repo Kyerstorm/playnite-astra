@@ -440,6 +440,7 @@ namespace Astra.Tests
             var result = new PlaytimeInsightsService(db).Analyze(new DateTime(2026, 5, 1), new DateTime(2026, 6, 1));
 
             Assert.Equal(3.0 / 2.0, result.Sessions.AverageSessionsPerActiveDay);
+            Assert.Equal(2, result.Sessions.ActiveDays);
         }
     }
 }

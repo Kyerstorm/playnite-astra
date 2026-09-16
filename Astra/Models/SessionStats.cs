@@ -11,5 +11,8 @@ namespace Astra.Models
 
         /// <summary>TotalSessions / distinct active days in the range. 0 when there are no active days.</summary>
         public double AverageSessionsPerActiveDay { get; set; }
+
+        /// <summary>Distinct calendar days with at least one session in the range.</summary>
+        public int ActiveDays { get; set; }
     }
 }
