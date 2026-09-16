@@ -17,11 +17,32 @@ Legend: ✅ In v1 · 🕓 Candidate for v2 · 🚫 Deliberately excluded
 |---|---|---|
 | Overview stat cards (hours, sessions, active days, new games) | ✅ (subset) | PlaytimeInsights |
 | Trend line/area charts (day/week/month/year) | ✅ | GameActivity, PlaytimeInsights |
-| Calendar heatmap (playtime intensity by day) | 🕓 | PlaytimeInsights |
-| Weekday × hour-of-day heatmap | 🕓 | PlaytimeInsights |
+| Calendar heatmap (playtime intensity by day) | ✅ | PlaytimeInsights |
+| Weekday × hour-of-day heatmap | ✅ | PlaytimeInsights |
 | Leaderboards (top games by playtime/sessions/avg length) | ✅ (year-scoped only, no all-time view) | PlaytimeInsights |
 | Genre/platform/source breakdown charts | 🕓 | GameScrobbler, GameActivity |
-| Time range selector + filtering by source/genre/tags | 🕓 | PlaytimeInsights |
+| Time range selector + filtering by source/genre/tags | ✅ (Day/Week/Month/Year granularity + range presets) | PlaytimeInsights |
+
+## Trends / Playtime Insights (2026 extension)
+
+Session-rhythm and activity-pattern analytics, deliberately separate from Most Played's
+game-ranking responsibility — see CLAUDE.md's "Trends extension" section for the full
+product-boundary rationale and per-section definitions.
+
+| Feature | Status | Source |
+|---|---|---|
+| Gaming Rhythm (busiest weekday/month, longest/current streak) | ✅ | user-requested spec |
+| Session Activity (count, avg/longest/shortest, sessions/active day) | ✅ | user-requested spec |
+| Calendar activity heatmap (one year, session/game count tooltip) | ✅ | user-requested spec |
+| Weekday distribution (Monday→Sunday, never sorted by value) | ✅ | user-requested spec |
+| Hour-of-day distribution + Weekday × 3-hour-bucket heatmap | ✅ | user-requested spec |
+| Session length distribution (5 fixed buckets, <30m through 4h+) | ✅ | user-requested spec |
+| Streaks (longest/current/most active week) | ✅ | user-requested spec |
+| Year-over-Year comparison (playtime/sessions/active days/games touched) | ✅ | user-requested spec |
+| Playtime Concentration (top 1/3/5/10 share, games-touched count only) | ✅ (no game names/covers/ranking — Most Played's job) | user-requested spec |
+| Game Rotation (new/returning games, multi-game days, counts only) | ✅ (no game list — Most Played's job) | user-requested spec |
+| "Your Gaming Year" deterministic text summary | ✅ (fixed templates, no AI, no subjective language) | user-requested spec |
+| Custom date range picker | 🕓 (spec allows deferring; presets cover the common cases) | user-requested spec |
 
 ## Yearly recap
 
