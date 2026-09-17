@@ -64,12 +64,12 @@ product-boundary rationale and per-section definitions.
 
 | Feature | Status | Source |
 |---|---|---|
-| Three-page sidebar navigation (Home / Most Played / Recap) | ✅ | user-requested, inspired by mockup |
+| Four-page sidebar navigation (Home / Trends / Most Played / Recap) | ✅ | user-requested, inspired by mockup |
 | Home: greeting + this-year stat cards + top 10 covers + "New this year" carousel | ✅ | user-requested |
 | Most Played: top-25 ranked list with cover thumbnails, year-scoped | ✅ | user-requested |
 | Real cover art (Playnite `Game.CoverImage`) with colored-initials fallback | ✅ | user-requested, mockup |
 | Click a cover in Home's "Top Played" to jump to that game's details in Playnite's library view | ✅ | user-requested |
-| Compatibility with Cover-Swapper's active cover (read live, never cache) | 🕓 (planned, design confirmed — no code changes needed beyond not caching) | user-requested |
+| Compatibility with Cover-Swapper's active cover (read live, never cache) | ✅ (`PlayniteGameInfoProvider` resolves `CoverImagePath` fresh every call, no caching) | user-requested |
 | "Continue where you left off" recently-played row | 🕓 | brainstormed |
 | "On this day" historical callback | 🕓 | brainstormed |
 | Never-played backlog nudge row | 🕓 | brainstormed |

@@ -59,7 +59,7 @@ namespace Astra
         public override IEnumerable<SidebarItem> GetSidebarItems()
         {
             // A single Astra icon in Playnite's own sidebar rail, opening a shell view with
-            // its OWN internal nav panel (Home / Most Played / Recap) - styled after
+            // its OWN internal nav panel (Home / Trends / Most Played / Recap) - styled after
             // GameScrobbler's in-plugin sidebar. An earlier version registered three separate
             // Playnite SidebarItems instead; that rendered as broken/untinted icon
             // placeholders in Playnite's rail and was reverted (see CLAUDE.md "UI redesign").

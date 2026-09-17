@@ -4,7 +4,7 @@ namespace Astra.Views
 {
     /// <summary>
     /// Owns Astra's single Playnite sidebar entry's content: an internal nav panel
-    /// (Home / Most Played / Recap) plus a content area that swaps between them,
+    /// (Home / Trends / Most Played / Recap) plus a content area that swaps between them,
     /// styled after GameScrobbler's in-plugin sidebar rather than three separate
     /// Playnite sidebar icons (the latter rendered as broken/untinted icon
     /// placeholders in Playnite's own rail - see CLAUDE.md "UI redesign").
