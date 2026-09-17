@@ -9,6 +9,8 @@ namespace Astra
     {
         private string displayName = string.Empty;
         private int lastSelectedYear = DateTime.Now.Year;
+        private int mostPlayedDisplayCount = 25;
+        private bool mostPlayedGridView;
 
         public string DisplayName
         {
@@ -20,6 +22,19 @@ namespace Astra
         {
             get => lastSelectedYear;
             set => SetValue(ref lastSelectedYear, value);
+        }
+
+        /// <summary>How many rows Most Played shows, or int.MaxValue for "All".</summary>
+        public int MostPlayedDisplayCount
+        {
+            get => mostPlayedDisplayCount;
+            set => SetValue(ref mostPlayedDisplayCount, value);
+        }
+
+        public bool MostPlayedGridView
+        {
+            get => mostPlayedGridView;
+            set => SetValue(ref mostPlayedGridView, value);
         }
     }
 

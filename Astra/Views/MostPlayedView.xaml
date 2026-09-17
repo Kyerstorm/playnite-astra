@@ -2,12 +2,119 @@
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:local="clr-namespace:Astra.Views"
+             xmlns:sys="clr-namespace:System.Windows.Controls;assembly=PresentationFramework"
              Foreground="{DynamicResource TextBrush}">
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <ResourceDictionary Source="SharedStyles.xaml" />
             </ResourceDictionary.MergedDictionaries>
+
+            <sys:BooleanToVisibilityConverter x:Key="BoolToVisibility" />
+            <local:ShareOfWidthConverter x:Key="ShareOfWidthConverter" />
+            <local:DisplayCountLabelConverter x:Key="DisplayCountLabelConverter" />
+            <local:TrendTextConverter x:Key="TrendTextConverter" />
+
+            <!-- List card is visible unless the Grid toggle is on; the grid panel below uses the
+                 plain BoolToVisibility converter for the opposite condition, so only one style
+                 (rather than an inverse-boolean converter) is needed for this pair. -->
+            <Style x:Key="ListPanelVisibility" TargetType="Border">
+                <Setter Property="Visibility" Value="Visible" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsGridView}" Value="True">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- View-toggle buttons: transparent, with the shell nav's confirmed-safe translucent-gray
+                 highlight (see AstraShellView.xaml NavRow). Two small BasedOn variants rather than one
+                 shared style + inverse-boolean binding, since DataTrigger only does equality and there's
+                 no built-in "NOT" converter to reuse for the List button's opposite condition. -->
+            <Style x:Key="ViewToggleButtonBase" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#14808080" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="ListViewToggleButton" TargetType="Button" BasedOn="{StaticResource ViewToggleButtonBase}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsGridView}" Value="False">
+                        <Setter Property="Background" Value="#22808080" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="GridViewToggleButton" TargetType="Button" BasedOn="{StaticResource ViewToggleButtonBase}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsGridView}" Value="True">
+                        <Setter Property="Background" Value="#22808080" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Trend badge coloring, following the same DataTrigger-over-enum pattern as
+                 SharedStyles' RankBadge (converter-returning-null broke a prior attempt - see BUGS.md). -->
+            <Style x:Key="TrendBadgeText" TargetType="TextBlock">
+                <Setter Property="FontSize" Value="11" />
+                <Setter Property="FontWeight" Value="SemiBold" />
+                <Setter Property="Opacity" Value="0.6" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Trend}" Value="Up">
+                        <Setter Property="Foreground" Value="#4CAF6D" />
+                        <Setter Property="Opacity" Value="1" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Trend}" Value="Down">
+                        <Setter Property="Foreground" Value="#E1604D" />
+                        <Setter Property="Opacity" Value="1" />
+                    </DataTrigger>
+                    <DataTrigger Binding="{Binding Trend}" Value="New">
+                        <Setter Property="Foreground" Value="{DynamicResource GlyphBrush}" />
+                        <Setter Property="Opacity" Value="0.85" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Grid-view cell: same cover/name/playtime shape as Home's carousel cell, plus a
+                 corner rank badge and trend badge since Most Played (unlike Home's "New This
+                 Year" strip) is itself a ranked, year-over-year list. -->
+            <DataTemplate x:Key="MostPlayedGridCellTemplate">
+                <StackPanel Width="120" Height="206" Margin="8" Cursor="Hand" Background="Transparent">
+                    <StackPanel.InputBindings>
+                        <MouseBinding MouseAction="LeftClick"
+                                      Command="{Binding DataContext.OpenGameDetailsCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                      CommandParameter="{Binding}" />
+                    </StackPanel.InputBindings>
+                    <Grid Width="120" Height="160">
+                        <Border Style="{StaticResource CoverPlaceholderBorder}">
+                            <TextBlock Text="{Binding PlaceholderInitials}" FontSize="22" FontWeight="Bold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Image Source="{Binding CoverImagePath, Converter={StaticResource PathToImageSourceConverter}}" Stretch="UniformToFill" />
+                        <Border Style="{StaticResource RankBadge}" Width="24" Height="24" Margin="6"
+                                HorizontalAlignment="Left" VerticalAlignment="Top">
+                            <TextBlock Text="{Binding Rank}" Style="{StaticResource RankBadgeText}" FontSize="11" />
+                        </Border>
+                    </Grid>
+                    <TextBlock Text="{Binding Name}" Margin="0,6,0,0" FontSize="12" TextWrapping="NoWrap" TextTrimming="CharacterEllipsis" TextAlignment="Center" />
+                    <Grid Margin="0,2,0,0">
+                        <TextBlock Text="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}"
+                                   FontSize="11" Opacity="0.6" HorizontalAlignment="Left" />
+                        <TextBlock HorizontalAlignment="Right" Style="{StaticResource TrendBadgeText}">
+                            <TextBlock.Text>
+                                <MultiBinding Converter="{StaticResource TrendTextConverter}">
+                                    <Binding Path="Trend" />
+                                    <Binding Path="RankDelta" />
+                                </MultiBinding>
+                            </TextBlock.Text>
+                        </TextBlock>
+                    </Grid>
+                </StackPanel>
+            </DataTemplate>
         </ResourceDictionary>
     </UserControl.Resources>
 
@@ -19,7 +126,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <!-- Header: title + year navigation (left), row count (right) -->
+        <!-- Header: title + year navigation (left), display-count picker + view toggle + row count (right) -->
         <DockPanel Grid.Row="0" Margin="0,0,0,16">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left" VerticalAlignment="Center">
                 <TextBlock Text="Most Played" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" Margin="0,0,14,0" />
@@ -27,27 +134,49 @@
                 <TextBlock Text="{Binding Year}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center" Width="44" TextAlignment="Center" Opacity="0.85" />
                 <Button Content="▶" Command="{Binding NextYearCommand}" Width="28" Height="28" Margin="2,0,0,0" />
             </StackPanel>
-            <TextBlock Text="{Binding Entries.Count, StringFormat='{}{0} games shown, ranked by playtime'}"
-                       DockPanel.Dock="Right" HorizontalAlignment="Right" VerticalAlignment="Center" FontSize="12" Opacity="0.55" />
+
+            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
+                <TextBlock Text="{Binding Entries.Count, StringFormat='{}{0} games shown'}"
+                           VerticalAlignment="Center" FontSize="12" Opacity="0.55" Margin="12,0,0,0" />
+
+                <ComboBox Margin="12,0,0,0" Width="84" VerticalAlignment="Center"
+                          ItemsSource="{x:Static local:MostPlayedViewModel.DisplayCountOptions}"
+                          SelectedItem="{Binding SelectedDisplayCount}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock Text="{Binding Converter={StaticResource DisplayCountLabelConverter}}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+
+                <Border CornerRadius="6" Margin="10,0,0,0" Padding="2" BorderBrush="{DynamicResource NormalBorderBrush}" BorderThickness="1">
+                    <StackPanel Orientation="Horizontal">
+                        <Button Content="List" Command="{Binding ShowListViewCommand}" Style="{StaticResource ListViewToggleButton}" />
+                        <Button Content="Grid" Command="{Binding ShowGridViewCommand}" Style="{StaticResource GridViewToggleButton}" />
+                    </StackPanel>
+                </Border>
+            </StackPanel>
         </DockPanel>
 
         <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" Opacity="0.8" Margin="0,0,0,10" TextWrapping="Wrap" />
 
         <!-- Ranked list card -->
-        <Border Grid.Row="2" Background="{DynamicResource PopupBackgroundBrush}" BorderBrush="{DynamicResource NormalBorderBrush}"
-                BorderThickness="1" CornerRadius="10">
+        <Border Grid.Row="2" Style="{StaticResource ListPanelVisibility}" Background="{DynamicResource PopupBackgroundBrush}"
+                BorderBrush="{DynamicResource NormalBorderBrush}" BorderThickness="1" CornerRadius="10">
             <DockPanel>
                 <!-- Column header row -->
                 <Grid DockPanel.Dock="Top" Margin="18,10" >
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="36" />
                         <ColumnDefinition Width="*" />
-                        <ColumnDefinition Width="110" />
+                        <ColumnDefinition Width="90" />
+                        <ColumnDefinition Width="56" />
                         <ColumnDefinition Width="40" />
                     </Grid.ColumnDefinitions>
                     <TextBlock Grid.Column="0" Text="#" FontSize="11" FontWeight="SemiBold" Opacity="0.5" />
                     <TextBlock Grid.Column="1" Text="GAME" FontSize="11" FontWeight="SemiBold" Opacity="0.5" />
                     <TextBlock Grid.Column="2" Text="PLAYTIME" FontSize="11" FontWeight="SemiBold" Opacity="0.5" TextAlignment="Right" />
+                    <TextBlock Grid.Column="3" Text="TREND" FontSize="11" FontWeight="SemiBold" Opacity="0.5" TextAlignment="Right" />
                 </Grid>
                 <Border DockPanel.Dock="Top" BorderBrush="{DynamicResource NormalBorderBrush}" BorderThickness="0,0,0,1" />
 
@@ -75,20 +204,45 @@
                                     <Grid.ColumnDefinitions>
                                         <ColumnDefinition Width="36" />
                                         <ColumnDefinition Width="*" />
-                                        <ColumnDefinition Width="110" />
+                                        <ColumnDefinition Width="90" />
+                                        <ColumnDefinition Width="56" />
                                         <ColumnDefinition Width="40" />
                                     </Grid.ColumnDefinitions>
                                     <Grid.RowDefinitions>
                                         <RowDefinition Height="Auto" />
                                         <RowDefinition Height="Auto" />
                                     </Grid.RowDefinitions>
-                                    <Border Grid.Row="1" Grid.ColumnSpan="4" BorderBrush="{DynamicResource NormalBorderBrush}" BorderThickness="0,0,0,1" Opacity="0.6" />
+
+                                    <!-- Relative-playtime backdrop: width is share-of-top-entry times the row's own
+                                         ActualWidth (via the ShareOfWidth multi-converter), so it scales with the
+                                         window instead of needing a hardcoded row width. Declared first so it
+                                         renders behind the row's own content (WPF z-orders by declaration order). -->
+                                    <Border Grid.Row="0" Grid.ColumnSpan="5" HorizontalAlignment="Left"
+                                            Background="{DynamicResource GlyphBrush}" Opacity="0.07">
+                                        <Border.Width>
+                                            <MultiBinding Converter="{StaticResource ShareOfWidthConverter}">
+                                                <Binding Path="PlaytimeShareOfTop" />
+                                                <Binding ElementName="RowRoot" Path="ActualWidth" />
+                                            </MultiBinding>
+                                        </Border.Width>
+                                    </Border>
+
+                                    <Border Grid.Row="1" Grid.ColumnSpan="5" BorderBrush="{DynamicResource NormalBorderBrush}" BorderThickness="0,0,0,1" Opacity="0.6" />
 
                                     <Border Grid.Column="0" Style="{StaticResource RankBadge}" Margin="18,10" HorizontalAlignment="Center">
                                         <TextBlock Text="{Binding Rank}" Style="{StaticResource RankBadgeText}" />
                                     </Border>
 
-                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,10" VerticalAlignment="Center">
+                                    <!-- Cover + name is the click-through target (Home's WideCoverCellTemplate
+                                         precedent): a plain ItemsControl row IS part of its own visual tree, so
+                                         AncestorType=ItemsControl reaches MostPlayedViewModel directly - no
+                                         PlacementTarget workaround needed here, unlike the ContextMenu above. -->
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="0,10" VerticalAlignment="Center" Cursor="Hand" Background="Transparent">
+                                        <StackPanel.InputBindings>
+                                            <MouseBinding MouseAction="LeftClick"
+                                                          Command="{Binding DataContext.OpenGameDetailsCommand, RelativeSource={RelativeSource AncestorType=ItemsControl}}"
+                                                          CommandParameter="{Binding}" />
+                                        </StackPanel.InputBindings>
                                         <Grid Width="44" Height="58" Margin="0,0,12,0">
                                             <Border Style="{StaticResource CoverPlaceholderBorder}">
                                                 <TextBlock Text="{Binding PlaceholderInitials}" FontSize="13" FontWeight="Bold" Foreground="White"
@@ -103,7 +257,17 @@
                                     </StackPanel>
 
                                     <TextBlock Grid.Column="2" Text="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}"
-                                               FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextAlignment="Right" Margin="0,10,18,10" Opacity="0.9" />
+                                               FontSize="14" FontWeight="SemiBold" VerticalAlignment="Center" TextAlignment="Right" Margin="0,10,10,10" Opacity="0.9" />
+
+                                    <TextBlock Grid.Column="3" VerticalAlignment="Center" TextAlignment="Right" Margin="0,10,18,10"
+                                               Style="{StaticResource TrendBadgeText}">
+                                        <TextBlock.Text>
+                                            <MultiBinding Converter="{StaticResource TrendTextConverter}">
+                                                <Binding Path="Trend" />
+                                                <Binding Path="RankDelta" />
+                                            </MultiBinding>
+                                        </TextBlock.Text>
+                                    </TextBlock>
 
                                     <!-- Tag (not ContextMenu!) carries a reference to RowRoot: a ContextMenu can only
                                          be owned by one FrameworkElement at a time, so binding this button's own
@@ -113,7 +277,7 @@
                                          killed every row's rendering (see CLAUDE.md BUGS.md-style note). Opening
                                          RowRoot's ContextMenu programmatically from the click handler avoids the
                                          dual-ownership problem entirely while still landing on the exact same menu. -->
-                                    <Button Grid.Column="3" Content="&#8942;" FontSize="16" Width="28" Height="28"
+                                    <Button Grid.Column="4" Content="&#8942;" FontSize="16" Width="28" Height="28"
                                             Background="Transparent" BorderThickness="0"
                                             Tag="{Binding ElementName=RowRoot}"
                                             Click="MoreButton_Click" ToolTip="Edit or reset playtime" />
@@ -125,7 +289,22 @@
             </DockPanel>
         </Border>
 
-        <TextBlock Grid.Row="3" Text="Data tracked locally by Astra. Use a row's &#8942; menu (or right-click) to correct a game's yearly total."
+        <!-- Grid card: same outer chrome as the list card, shown only when IsGridView is true. -->
+        <Border Grid.Row="2" Visibility="{Binding IsGridView, Converter={StaticResource BoolToVisibility}}"
+                Background="{DynamicResource PopupBackgroundBrush}" BorderBrush="{DynamicResource NormalBorderBrush}"
+                BorderThickness="1" CornerRadius="10">
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled" Padding="10">
+                <ItemsControl ItemsSource="{Binding Entries}" ItemTemplate="{StaticResource MostPlayedGridCellTemplate}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <WrapPanel Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                </ItemsControl>
+            </ScrollViewer>
+        </Border>
+
+        <TextBlock Grid.Row="3" Text="Data tracked locally by Astra. Use a row's &#8942; menu (or right-click) to correct a game's yearly total; click a game to jump to its details."
                    FontSize="11" Opacity="0.5" Margin="4,10,0,0" />
     </Grid>
 </UserControl>
