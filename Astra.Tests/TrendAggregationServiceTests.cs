@@ -260,6 +260,49 @@ namespace Astra.Tests
         }
 
         [Fact]
+        public void BuildTrend_Hour_OnePointPerHourWithin24HourRange()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 3, 10, 17, 30, 0), 1800);
+
+            var result = new TrendAggregationService(db)
+                .BuildTrend(TrendGranularity.Hour, new DateTime(2026, 3, 10), new DateTime(2026, 3, 11));
+
+            Assert.Equal(24, result.Points.Count);
+            Assert.Equal(1800, result.Points[17].PlaytimeSeconds); // 17:30 falls in the 17:00 bucket
+            Assert.Equal(0, result.Points[16].PlaytimeSeconds);
+            Assert.Equal(0, result.Points[18].PlaytimeSeconds);
+        }
+
+        [Fact]
+        public void BuildTrend_Hour_MultipleSessionsSameHour_Sum()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var game = Guid.NewGuid();
+            db.InsertSession(game, new DateTime(2026, 3, 10, 20, 5, 0), 600);
+            db.InsertSession(game, new DateTime(2026, 3, 10, 20, 45, 0), 900);
+
+            var result = new TrendAggregationService(db)
+                .BuildTrend(TrendGranularity.Hour, new DateTime(2026, 3, 10), new DateTime(2026, 3, 11));
+
+            Assert.Equal(1500, result.Points[20].PlaytimeSeconds);
+            Assert.Equal(2, result.Points[20].SessionCount);
+        }
+
+        [Fact]
+        public void BuildTrend_Hour_LabelIsTwentyFourHourClock()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = new TrendAggregationService(db)
+                .BuildTrend(TrendGranularity.Hour, new DateTime(2026, 3, 10), new DateTime(2026, 3, 11));
+
+            Assert.Equal("00:00", result.Points[0].Label);
+            Assert.Equal("23:00", result.Points[23].Label);
+        }
+
+        [Fact]
         public void BuildTrend_Day_LeapYearHas366DailyBuckets()
         {
             var db = TestDatabaseFactory.CreateTemp();

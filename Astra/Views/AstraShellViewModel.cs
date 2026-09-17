@@ -63,11 +63,12 @@ namespace Astra.Views
             MostPlayed = new MostPlayedViewModel(plugin, settings);
             Recap = new RecapViewModel(plugin, settings);
 
-            // Preserves Home's year context when navigating via "View Trends ->" (spec section 14):
-            // Home / 2025 -> Trends / Month / 2025, not whatever year Trends last happened to show.
+            // Preserves Home's year context when navigating via "View Trends ->": Home / 2025 ->
+            // Trends / Year / 2025. Lands on the Year tab (not Month) since only Year can reach an
+            // arbitrary past year - Month's dropdown only ever lists the most recent 12 months.
             Home.ViewTrendsRequested += targetYear =>
             {
-                Trends.ShowMonthlyTrendForYear(targetYear);
+                Trends.ShowYear(targetYear);
                 CurrentPage = Trends;
             };
 

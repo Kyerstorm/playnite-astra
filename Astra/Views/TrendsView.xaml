@@ -81,18 +81,15 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <!-- Header: title + year nav (Month mode only - see TrendsViewModel.IsYearNavVisible) -->
+        <!-- Header: title only now - period selection (including year, for the Year tab) lives entirely
+             in the dropdown below, so there's no separate year-nav control any more. -->
         <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,16">
             <TextBlock Text="Playtime Trends" FontSize="22" FontWeight="Bold" DockPanel.Dock="Left" VerticalAlignment="Center" />
-            <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center"
-                        Visibility="{Binding IsYearNavVisible, Converter={StaticResource BoolToVisibilityConverter}}">
-                <Button Content="◀" Command="{Binding PreviousYearCommand}" Width="32" Margin="4,0" />
-                <TextBlock Text="{Binding Year}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" Width="60" TextAlignment="Center" />
-                <Button Content="▶" Command="{Binding NextYearCommand}" Width="32" Margin="4,0" />
-            </StackPanel>
         </DockPanel>
 
-        <!-- Granularity segmented control + range preset picker -->
+        <!-- Granularity segmented control + single-period picker. Each tab shows exactly one period of
+             its own length (a day / a week / a month / a year) - the dropdown picks WHICH one, it does
+             not offer a rolling multi-period window. -->
         <DockPanel Grid.Row="1" LastChildFill="False" Margin="0,0,0,16">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                 <Border Style="{StaticResource GranularityButton}" Tag="{Binding IsDaySelected}">
@@ -121,8 +118,9 @@
                 </Border>
             </StackPanel>
 
-            <ComboBox DockPanel.Dock="Right" Width="160" VerticalAlignment="Center"
-                      ItemsSource="{Binding AvailableRangeOptions}" SelectedItem="{Binding SelectedRangeOption}" />
+            <ComboBox DockPanel.Dock="Right" Width="180" VerticalAlignment="Center"
+                      ItemsSource="{Binding AvailablePeriods}" SelectedItem="{Binding SelectedPeriod}"
+                      DisplayMemberPath="Label" />
         </DockPanel>
 
         <!-- Everything below the header/controls scrolls as one column - the page is not meant to fit

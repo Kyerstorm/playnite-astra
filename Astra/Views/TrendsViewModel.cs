@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using System.Windows.Input;
 using Astra.Models;
 using Astra.Services;
@@ -7,31 +9,15 @@ using Astra.Services;
 namespace Astra.Views
 {
     /// <summary>
-    /// Drives the dedicated Trends page: Day/Week/Month/Year granularity, a range preset per
-    /// granularity, and (Month only) a year selector shared with Home/Most Played/Recap via
-    /// AstraSettings.LastSelectedYear. All numbers come from TrendAggregationService - this
-    /// view-model only resolves "which range" into concrete dates and holds UI state.
+    /// Drives the dedicated Trends page. Each of the four tabs (Day/Week/Month/Year) shows exactly
+    /// ONE period of its own length - a single day, a single Monday-start week, a single calendar
+    /// month, or a single calendar year - picked via the period dropdown, rather than a rolling
+    /// multi-period window. All numbers come from TrendAggregationService/PlaytimeInsightsService;
+    /// this view-model only resolves "which single period" into concrete dates and holds UI state.
     /// </summary>
-    public class TrendsViewModel : ViewModelBase, IYearScoped
+    public class TrendsViewModel : ViewModelBase
     {
         private readonly Astra plugin;
-        private readonly AstraSettings settings;
-
-        public static readonly Dictionary<TrendGranularity, List<string>> RangeOptionsByGranularity = new Dictionary<TrendGranularity, List<string>>
-        {
-            [TrendGranularity.Day] = new List<string> { "Last 7 days", "Last 14 days", "Last 30 days" },
-            [TrendGranularity.Week] = new List<string> { "Last 8 weeks", "Last 12 weeks", "Last 26 weeks" },
-            [TrendGranularity.Month] = new List<string> { "Current year", "Previous year", "Last 2 years" },
-            [TrendGranularity.Year] = new List<string> { "All years", "Last 5 years", "Last 10 years" }
-        };
-
-        private static readonly Dictionary<TrendGranularity, string> DefaultRangeOption = new Dictionary<TrendGranularity, string>
-        {
-            [TrendGranularity.Day] = "Last 30 days",
-            [TrendGranularity.Week] = "Last 12 weeks",
-            [TrendGranularity.Month] = "Current year",
-            [TrendGranularity.Year] = "All years"
-        };
 
         private TrendGranularity granularity;
         public TrendGranularity Granularity
@@ -41,55 +27,44 @@ namespace Astra.Views
             {
                 if (SetValue(ref granularity, value))
                 {
-                    NotifyPropertyChanged(nameof(AvailableRangeOptions));
-                    NotifyPropertyChanged(nameof(IsYearNavVisible));
                     NotifyPropertyChanged(nameof(IsDaySelected));
                     NotifyPropertyChanged(nameof(IsWeekSelected));
                     NotifyPropertyChanged(nameof(IsMonthSelected));
                     NotifyPropertyChanged(nameof(IsYearSelected));
                     NotifyPropertyChanged(nameof(IsYearComparisonVisible));
-                    // Assigning SelectedRangeOption triggers Refresh() via its own setter - every
-                    // granularity's default label is distinct, so this always fires even when the
-                    // previous granularity happened to leave the same string selected.
-                    SelectedRangeOption = DefaultRangeOption[value];
+
+                    AvailablePeriods = BuildAvailablePeriods(value);
+                    // Selecting the most recent period triggers Refresh() via SelectedPeriod's setter -
+                    // every granularity's period list is distinct, so this always fires.
+                    SelectedPeriod = AvailablePeriods.Count > 0 ? AvailablePeriods[0] : null;
                 }
             }
         }
-
-        public List<string> AvailableRangeOptions => RangeOptionsByGranularity[Granularity];
-
-        private string selectedRangeOption;
-        public string SelectedRangeOption
-        {
-            get => selectedRangeOption;
-            set
-            {
-                if (SetValue(ref selectedRangeOption, value))
-                {
-                    Refresh();
-                }
-            }
-        }
-
-        /// <summary>Year nav only applies to Month mode: Day/Week ranges are always relative to "now"
-        /// ("last 30 days"), and Year mode's own presets ("All years"/"Last 5/10 years") are relative
-        /// windows too - see spec section 6, which only gives a Month example.</summary>
-        public bool IsYearNavVisible => Granularity == TrendGranularity.Month;
 
         public bool IsDaySelected => Granularity == TrendGranularity.Day;
         public bool IsWeekSelected => Granularity == TrendGranularity.Week;
         public bool IsMonthSelected => Granularity == TrendGranularity.Month;
         public bool IsYearSelected => Granularity == TrendGranularity.Year;
 
-        private int year;
-        public int Year
+        /// <summary>Only Year mode compares against a full preceding year - a single day/week/month
+        /// doesn't have an obvious "same period last year" counterpart worth building yet.</summary>
+        public bool IsYearComparisonVisible => Granularity == TrendGranularity.Year;
+
+        private List<TrendPeriodOption> availablePeriods = new List<TrendPeriodOption>();
+        public List<TrendPeriodOption> AvailablePeriods
         {
-            get => year;
+            get => availablePeriods;
+            private set => SetValue(ref availablePeriods, value);
+        }
+
+        private TrendPeriodOption selectedPeriod;
+        public TrendPeriodOption SelectedPeriod
+        {
+            get => selectedPeriod;
             set
             {
-                if (SetValue(ref year, value))
+                if (SetValue(ref selectedPeriod, value) && value != null)
                 {
-                    settings.LastSelectedYear = value;
                     Refresh();
                 }
             }
@@ -118,10 +93,9 @@ namespace Astra.Views
 
         private TrendResult heatmapTrend;
 
-        /// <summary>Always one full calendar year of daily buckets for the currently-scoped Year
-        /// (settings.LastSelectedYear), independent of the main chart's granularity - a calendar
-        /// heatmap for "last 7 days" or a 10-year "All years" range wouldn't be meaningful, so it
-        /// stays pinned to a single year the way Home's mini-chart does (spec sections 10, 20).</summary>
+        /// <summary>Always one full calendar year of daily buckets for the year the selected period
+        /// falls in - a calendar heatmap for a single day or week wouldn't be meaningful, so it stays
+        /// pinned to that period's year for context (spec sections 10, 20).</summary>
         public TrendResult HeatmapTrend
         {
             get => heatmapTrend;
@@ -129,17 +103,11 @@ namespace Astra.Views
         }
 
         private YearComparison yearComparison;
-
-        /// <summary>Only meaningful in Month/Year granularity (spec section 20's "prioritise" list for
-        /// those modes) - still computed in Day/Week mode so the binding never sees null, but the card
-        /// is hidden there via IsYearComparisonVisible.</summary>
         public YearComparison YearComparison
         {
             get => yearComparison;
             private set => SetValue(ref yearComparison, value);
         }
-
-        public bool IsYearComparisonVisible => Granularity == TrendGranularity.Month || Granularity == TrendGranularity.Year;
 
         private List<string> gamingYearSummary;
         public List<string> GamingYearSummary
@@ -148,8 +116,6 @@ namespace Astra.Views
             private set => SetValue(ref gamingYearSummary, value);
         }
 
-        public ICommand PreviousYearCommand { get; }
-        public ICommand NextYearCommand { get; }
         public ICommand SelectDayCommand { get; }
         public ICommand SelectWeekCommand { get; }
         public ICommand SelectMonthCommand { get; }
@@ -158,104 +124,169 @@ namespace Astra.Views
         public TrendsViewModel(Astra plugin, AstraSettings settings)
         {
             this.plugin = plugin;
-            this.settings = settings;
 
-            granularity = TrendGranularity.Month;
-            year = settings.LastSelectedYear > 0 ? settings.LastSelectedYear : DateTime.Now.Year;
-            selectedRangeOption = DefaultRangeOption[granularity];
-
-            PreviousYearCommand = new RelayCommand(_ => Year--);
-            NextYearCommand = new RelayCommand(_ => Year++, _ => Year < DateTime.Now.Year);
             SelectDayCommand = new RelayCommand(_ => Granularity = TrendGranularity.Day);
             SelectWeekCommand = new RelayCommand(_ => Granularity = TrendGranularity.Week);
             SelectMonthCommand = new RelayCommand(_ => Granularity = TrendGranularity.Month);
             SelectYearCommand = new RelayCommand(_ => Granularity = TrendGranularity.Year);
 
+            granularity = TrendGranularity.Month;
+            availablePeriods = BuildAvailablePeriods(granularity);
+            selectedPeriod = availablePeriods.Count > 0 ? availablePeriods[0] : null;
+
             Refresh();
         }
 
-        /// <summary>Opens Trends already scoped to Month/&lt;targetYear&gt;, preserving Home's year
-        /// context - see AstraShellViewModel's wiring of HomeViewModel.ViewTrendsRequested.</summary>
-        public void ShowMonthlyTrendForYear(int targetYear)
+        /// <summary>Opens Trends on the Year tab with the given year selected - used by Home's
+        /// "View Trends ->" link (AstraShellViewModel wires HomeViewModel.ViewTrendsRequested here).
+        /// Year is the only tab that can reach an arbitrary past year regardless of how long ago it
+        /// was, since Month/Week/Day only ever list the most recent handful of periods.</summary>
+        public void ShowYear(int year)
         {
-            var wasAlreadyMonth = granularity == TrendGranularity.Month;
-            granularity = TrendGranularity.Month;
-            selectedRangeOption = DefaultRangeOption[TrendGranularity.Month];
-            NotifyPropertyChanged(nameof(Granularity));
-            NotifyPropertyChanged(nameof(AvailableRangeOptions));
-            NotifyPropertyChanged(nameof(SelectedRangeOption));
-            NotifyPropertyChanged(nameof(IsYearNavVisible));
-            NotifyPropertyChanged(nameof(IsDaySelected));
-            NotifyPropertyChanged(nameof(IsWeekSelected));
-            NotifyPropertyChanged(nameof(IsMonthSelected));
-            NotifyPropertyChanged(nameof(IsYearSelected));
-            NotifyPropertyChanged(nameof(IsYearComparisonVisible));
+            Granularity = TrendGranularity.Year;
 
-            if (wasAlreadyMonth && year == targetYear)
+            var match = AvailablePeriods.FirstOrDefault(p => p.PeriodStart.Year == year);
+            if (match == null)
             {
-                Refresh();
+                match = new TrendPeriodOption
+                {
+                    Label = year.ToString(CultureInfo.InvariantCulture),
+                    PeriodStart = new DateTime(year, 1, 1),
+                    PeriodEnd = new DateTime(year + 1, 1, 1)
+                };
             }
-            else
-            {
-                Year = targetYear; // setter refreshes
-            }
+
+            SelectedPeriod = match;
         }
 
         private void Refresh()
         {
-            var (start, end) = ComputeRange();
-            Trend = plugin.TrendAggregationService.BuildTrend(Granularity, start, end);
+            if (SelectedPeriod == null)
+            {
+                return;
+            }
 
-            var previousStart = start - (end - start);
-            var previousTrend = plugin.TrendAggregationService.BuildTrend(Granularity, previousStart, start);
+            var start = SelectedPeriod.PeriodStart;
+            var end = SelectedPeriod.PeriodEnd;
+
+            Trend = plugin.TrendAggregationService.BuildTrend(ChartBucketGranularity(Granularity), start, end);
+
+            var (previousStart, previousEnd) = PreviousPeriodRange(Granularity, start, end);
+            var previousTrend = plugin.TrendAggregationService.BuildTrend(ChartBucketGranularity(Granularity), previousStart, previousEnd);
             PreviousPeriodDeltaSeconds = Trend.TotalPlaytimeSeconds - previousTrend.TotalPlaytimeSeconds;
 
             Analytics = plugin.PlaytimeInsightsService.Analyze(start, end);
-            HeatmapTrend = plugin.TrendAggregationService.BuildTrend(TrendGranularity.Day, new DateTime(Year, 1, 1), new DateTime(Year + 1, 1, 1));
-            YearComparison = plugin.PlaytimeInsightsService.BuildYearComparison(Year);
+            HeatmapTrend = plugin.TrendAggregationService.BuildTrend(TrendGranularity.Day, new DateTime(start.Year, 1, 1), new DateTime(start.Year + 1, 1, 1));
+            YearComparison = plugin.PlaytimeInsightsService.BuildYearComparison(start.Year);
             GamingYearSummary = GamingYearSummaryBuilder.Build(Analytics, Analytics?.Concentration);
         }
 
-        private (DateTime start, DateTime end) ComputeRange()
+        /// <summary>The main chart's internal bucket size for the selected tab - one level finer than
+        /// the tab itself, since each tab now shows a single period rather than a trend across several:
+        /// Day -> hourly bars within that day, Week/Month -> daily bars within that week/month,
+        /// Year -> monthly bars within that year.</summary>
+        private static TrendGranularity ChartBucketGranularity(TrendGranularity tab)
         {
-            var today = DateTime.Now.Date;
-
-            switch (Granularity)
+            switch (tab)
             {
                 case TrendGranularity.Day:
-                    var days = SelectedRangeOption == "Last 7 days" ? 7 : SelectedRangeOption == "Last 14 days" ? 14 : 30;
-                    return (today.AddDays(-(days - 1)), today.AddDays(1));
+                    return TrendGranularity.Hour;
+                case TrendGranularity.Week:
+                    return TrendGranularity.Day;
+                case TrendGranularity.Month:
+                    return TrendGranularity.Day;
+                case TrendGranularity.Year:
+                    return TrendGranularity.Month;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(tab));
+            }
+        }
+
+        private static (DateTime start, DateTime end) PreviousPeriodRange(TrendGranularity granularity, DateTime start, DateTime end)
+        {
+            switch (granularity)
+            {
+                case TrendGranularity.Day:
+                    return (start.AddDays(-1), start);
+                case TrendGranularity.Week:
+                    return (start.AddDays(-7), start);
+                case TrendGranularity.Month:
+                    return (start.AddMonths(-1), start);
+                case TrendGranularity.Year:
+                    return (start.AddYears(-1), start);
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(granularity));
+            }
+        }
+
+        /// <summary>Builds the period dropdown's contents for a given tab - see TrendPeriodOption for
+        /// what each entry represents. Counts/labels match the exact spec given for this redesign:
+        /// Day = last 7 individual days, Week = current + last 3 individual weeks, Month = current +
+        /// previous 11 individual months, Year = every year with recorded data, most recent first.</summary>
+        private List<TrendPeriodOption> BuildAvailablePeriods(TrendGranularity forGranularity)
+        {
+            var today = DateTime.Now.Date;
+            var options = new List<TrendPeriodOption>();
+
+            switch (forGranularity)
+            {
+                case TrendGranularity.Day:
+                    for (var i = 0; i < 7; i++)
+                    {
+                        var date = today.AddDays(-i);
+                        options.Add(new TrendPeriodOption
+                        {
+                            Label = date.ToString("d/M/yyyy", CultureInfo.InvariantCulture),
+                            PeriodStart = date,
+                            PeriodEnd = date.AddDays(1)
+                        });
+                    }
+                    break;
 
                 case TrendGranularity.Week:
-                    var weeks = SelectedRangeOption == "Last 8 weeks" ? 8 : SelectedRangeOption == "Last 26 weeks" ? 26 : 12;
-                    return (today.AddDays(-7 * weeks), today.AddDays(1));
+                    var thisWeekStart = TrendAggregationService.StartOfWeek(today);
+                    for (var i = 0; i < 4; i++)
+                    {
+                        var weekStart = thisWeekStart.AddDays(-7 * i);
+                        var weekEnd = weekStart.AddDays(7);
+                        options.Add(new TrendPeriodOption
+                        {
+                            Label = $"{weekStart.ToString("d MMM", CultureInfo.InvariantCulture)} - {weekEnd.AddDays(-1).ToString("d MMM yyyy", CultureInfo.InvariantCulture)}",
+                            PeriodStart = weekStart,
+                            PeriodEnd = weekEnd
+                        });
+                    }
+                    break;
 
                 case TrendGranularity.Month:
-                    if (SelectedRangeOption == "Previous year")
+                    var thisMonthStart = new DateTime(today.Year, today.Month, 1);
+                    for (var i = 0; i < 12; i++)
                     {
-                        return (new DateTime(Year - 1, 1, 1), new DateTime(Year, 1, 1));
+                        var monthStart = thisMonthStart.AddMonths(-i);
+                        options.Add(new TrendPeriodOption
+                        {
+                            Label = monthStart.ToString("MMMM yyyy", CultureInfo.InvariantCulture),
+                            PeriodStart = monthStart,
+                            PeriodEnd = monthStart.AddMonths(1)
+                        });
                     }
-                    if (SelectedRangeOption == "Last 2 years")
-                    {
-                        return (new DateTime(Year - 1, 1, 1), new DateTime(Year + 1, 1, 1));
-                    }
-                    return (new DateTime(Year, 1, 1), new DateTime(Year + 1, 1, 1));
+                    break;
 
                 case TrendGranularity.Year:
-                    if (SelectedRangeOption == "Last 5 years")
-                    {
-                        return (new DateTime(today.Year - 4, 1, 1), new DateTime(today.Year + 1, 1, 1));
-                    }
-                    if (SelectedRangeOption == "Last 10 years")
-                    {
-                        return (new DateTime(today.Year - 9, 1, 1), new DateTime(today.Year + 1, 1, 1));
-                    }
                     var earliestYear = plugin.Database.GetEarliestSessionYear() ?? today.Year;
-                    return (new DateTime(earliestYear, 1, 1), new DateTime(today.Year + 1, 1, 1));
-
-                default:
-                    throw new ArgumentOutOfRangeException();
+                    for (var y = today.Year; y >= earliestYear; y--)
+                    {
+                        options.Add(new TrendPeriodOption
+                        {
+                            Label = y.ToString(CultureInfo.InvariantCulture),
+                            PeriodStart = new DateTime(y, 1, 1),
+                            PeriodEnd = new DateTime(y + 1, 1, 1)
+                        });
+                    }
+                    break;
             }
+
+            return options;
         }
     }
 }

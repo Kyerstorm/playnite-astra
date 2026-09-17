@@ -96,6 +96,8 @@ namespace Astra.Services
         {
             switch (granularity)
             {
+                case TrendGranularity.Hour:
+                    return new DateTime(value.Year, value.Month, value.Day, value.Hour, 0, 0);
                 case TrendGranularity.Day:
                     return value.Date;
                 case TrendGranularity.Week:
@@ -121,6 +123,8 @@ namespace Astra.Services
 
             switch (granularity)
             {
+                case TrendGranularity.Hour:
+                    return flooredValue.AddHours(1);
                 case TrendGranularity.Day:
                     return flooredValue.AddDays(1);
                 case TrendGranularity.Week:
@@ -151,6 +155,9 @@ namespace Astra.Services
         {
             switch (granularity)
             {
+                case TrendGranularity.Hour:
+                    var hourStart = new DateTime(sessionStartedAt.Year, sessionStartedAt.Month, sessionStartedAt.Day, sessionStartedAt.Hour, 0, 0);
+                    return (int)(hourStart - alignedStart).TotalHours;
                 case TrendGranularity.Day:
                     return (int)(sessionStartedAt.Date - alignedStart).TotalDays;
                 case TrendGranularity.Week:
@@ -176,6 +183,10 @@ namespace Astra.Services
 
                 switch (granularity)
                 {
+                    case TrendGranularity.Hour:
+                        next = cursor.AddHours(1);
+                        label = cursor.ToString("HH:mm", CultureInfo.InvariantCulture);
+                        break;
                     case TrendGranularity.Day:
                         next = cursor.AddDays(1);
                         label = cursor.ToString("MMM d", CultureInfo.InvariantCulture);

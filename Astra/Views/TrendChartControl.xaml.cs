@@ -202,6 +202,8 @@ namespace Astra.Views
         {
             switch (Trend?.Granularity)
             {
+                case TrendGranularity.Hour:
+                    return point.PeriodStart.ToString("d MMM, HH:mm", CultureInfo.InvariantCulture);
                 case TrendGranularity.Day:
                     return point.PeriodStart.ToString("MMMM d", CultureInfo.InvariantCulture);
                 case TrendGranularity.Week:
