@@ -106,33 +106,37 @@ dotnet test Astra.Tests/Astra.Tests.csproj -c Debug --filter "FullyQualifiedName
 ### 11. Trends navigation
 
 1. Confirm the Astra nav rail now shows Home / Trends / Most Played / Recap, in that order, with Trends between Home and Most Played.
-2. Click Trends. Confirm the page opens on Month granularity for the current year by default, with the "PLAYTIME" area chart, three summary cards (Total Playtime, Average / Period, Active Periods), and a `< year >` selector.
+2. Click Trends. Confirm the page opens on Month granularity for the current calendar month by default, with the "PLAYTIME" area chart, four summary cards (Total Playtime, Average / Period, Active Periods, Sessions), and a period dropdown reading the current month (e.g. "September 2026").
 
-### 12. Day / Week / Month / Year granularity + ranges
+### 12. Day / Week / Month / Year granularity + single-period selection
 
-1. Click DAY. Confirm the range dropdown offers "Last 7 days"/"Last 14 days"/"Last 30 days" (default 30) and the year selector disappears (Day is always relative to today).
-2. Click WEEK. Confirm "Last 8/12/26 weeks" (default 12), year selector still hidden.
-3. Click MONTH. Confirm "Current year"/"Previous year"/"Last 2 years" (default current year) and the `< year >` selector reappears; use it to change years and confirm the chart/cards update.
-4. Click YEAR. Confirm "All years"/"Last 5 years"/"Last 10 years" (default All years), year selector hidden.
-5. For each granularity, confirm switching range options recomputes the chart and all three cards without freezing Playnite, even with a large session history.
+Each tab shows exactly **one period of its own length** - the dropdown picks *which* one, it is not a rolling "last N" window.
+
+1. Click DAY. Confirm the dropdown lists the last 7 individual calendar days (e.g. "17/9/2026", "16/9/2026", ...), most recent first and selected by default. Confirm the chart shows 24 hourly bars for that single day (00:00-23:00), and picking an earlier date from the dropdown re-renders those 24 hours for that day instead.
+2. Click WEEK. Confirm the dropdown lists exactly 4 entries: the current Monday-start week plus the previous 3, each as a date range (e.g. "8 Sep - 14 Sep 2026"). Confirm the chart shows 7 daily bars (Monday-Sunday) for the selected week.
+3. Click MONTH. Confirm the dropdown lists the current month plus the previous 11 (e.g. "September 2026" down to "October 2025"), each individually selectable. Confirm the chart shows one daily bar per day of the selected month (1st through the last day).
+4. Click YEAR. Confirm the dropdown lists every year that has at least one recorded session, most recent first (falls back to just the current year if there's no data at all). Confirm the chart shows 12 monthly bars (January-December) for the selected year.
+5. For each granularity, confirm switching the dropdown selection recomputes the chart and all four summary cards without freezing Playnite, even with a large session history.
+6. Confirm every section below the chart (Gaming Rhythm, Session Activity, calendar heatmap, Weekday/Session Length distributions, Hour-of-day, Streaks, Concentration, Rotation, "Your Gaming Year") updates to describe that same single selected period - e.g. Weekday distribution for a single selected Day should show activity on only one day of the week.
+7. Confirm the Year-over-Year card only appears on the YEAR tab (hidden on Day/Week/Month), comparing the selected year against the year immediately before it.
 
 ### 13. Tooltips and empty periods
 
-1. Hover across the chart in Month mode for a year with at least one zero-playtime month. Confirm that month still appears on the chart as a visible zero point (not skipped), and hovering it shows "0m played" alongside its label.
-2. Hover a month with real playtime — confirm the tooltip shows the correct month name/year and an "Xh Ym" value matching the stat cards' math.
-3. Switch to Week/Day/Year and spot-check a couple of tooltips the same way (title format differs per granularity: "Week of D MMM", "Month D", or just the year).
+1. Hover the chart in Month mode - each point is one day of the selected month; confirm a zero-playtime day still appears as a visible zero bar (not skipped), and hovering it shows "0m played" alongside its date.
+2. Hover a bar with real playtime - confirm the tooltip shows the correct date/value matching the summary cards' math for that bar's slice.
+3. Switch to Day (hourly bars), Week/Month (daily bars), and Year (monthly bars) and spot-check a couple of tooltips the same way (title format differs per bucket size: "d MMM, HH:mm" for hourly, "MMMM d" for daily, just the year for monthly-within-a-year).
 
 ### 14. Empty state
 
-1. Pick a range/granularity combination with zero tracked sessions (e.g. Month / Previous year, on a fresh install, or Year / a range before any tracked data).
+1. Pick a period with zero tracked sessions (e.g. a day/week/month far enough back that nothing was recorded, on a fresh install).
 2. Confirm the chart area shows "No playtime yet" / "Play some games and your trends will appear here." instead of a blank or misleading chart.
 
 ### 15. Home mini-chart + View Trends navigation
 
 1. On Home, confirm a "PLAYTIME TREND" section with a small area chart appears below "New this year," showing monthly playtime for the currently selected Home year.
 2. Change Home's year with the `< >` controls — confirm the mini-chart updates to that year's monthly data.
-3. Click "View Trends →". Confirm it navigates to the Trends page already showing Month granularity for the exact year Home was on.
-4. Compare the mini-chart's shape/totals against the same year on the full Trends page (Month mode) — they must match exactly (both come from `TrendAggregationService.BuildMonthlyTrendForYear`).
+3. Click "View Trends →". Confirm it navigates to the Trends page on the **YEAR** tab with that exact year selected in the dropdown (not Month - Month's dropdown only ever reaches the last 12 months, so it can't represent an arbitrary past year).
+4. Compare the mini-chart's shape/totals against the same year on the full Trends page (Year tab, which buckets monthly) — they must match exactly (both come from `TrendAggregationService.BuildMonthlyTrendForYear`/`BuildTrend(Month, ...)` over the same calendar year).
 
 ### 16. Multi-resolution / theme (Trends-specific)
 

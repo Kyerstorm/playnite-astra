@@ -21,7 +21,7 @@ Legend: ✅ In v1 · 🕓 Candidate for v2 · 🚫 Deliberately excluded
 | Weekday × hour-of-day heatmap | ✅ | PlaytimeInsights |
 | Leaderboards (top games by playtime/sessions/avg length) | ✅ (year-scoped only, no all-time view) | PlaytimeInsights |
 | Genre/platform/source breakdown charts | 🕓 | GameScrobbler, GameActivity |
-| Time range selector + filtering by source/genre/tags | ✅ (Day/Week/Month/Year granularity + range presets) | PlaytimeInsights |
+| Time range selector + filtering by source/genre/tags | ✅ (Day/Week/Month/Year tabs, each showing one selectable single period via a dropdown - not filtered by source/genre/tags) | PlaytimeInsights |
 
 ## Trends / Playtime Insights (2026 extension)
 
