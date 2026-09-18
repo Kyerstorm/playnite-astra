@@ -69,9 +69,6 @@ namespace Astra.Models
         public List<GameRecapEntry> TopGames { get; set; } = new List<GameRecapEntry>();
         public List<GameRecapEntry> NewGamesThisYear { get; set; } = new List<GameRecapEntry>();
 
-        /// <summary>The single longest tracked session this year, or null if there were no sessions.</summary>
-        public LongestSessionHighlight LongestSession { get; set; }
-
         /// <summary>Top 6 genres/platforms by (override-aware) playtime - see RecapAggregator.BuildCategoryBreakdown.</summary>
         public List<CategoryBreakdownEntry> GenreBreakdown { get; set; } = new List<CategoryBreakdownEntry>();
         public List<CategoryBreakdownEntry> PlatformBreakdown { get; set; } = new List<CategoryBreakdownEntry>();

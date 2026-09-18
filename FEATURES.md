@@ -64,7 +64,7 @@ product-boundary rationale and per-section definitions.
 
 | Feature | Status | Source |
 |---|---|---|
-| Four-page sidebar navigation (Home / Trends / Most Played / Recap) | ✅ | user-requested, inspired by mockup |
+| Five-page sidebar navigation (Home / Trends / Most Played / Recap / Backlog) | ✅ | user-requested, inspired by mockup |
 | Home: greeting + this-year stat cards + top 10 covers + "New this year" carousel | ✅ | user-requested |
 | Most Played: top-25 ranked list with cover thumbnails, year-scoped | ✅ | user-requested |
 | Real cover art (Playnite `Game.CoverImage`) with colored-initials fallback | ✅ | user-requested, mockup |
@@ -72,8 +72,11 @@ product-boundary rationale and per-section definitions.
 | Compatibility with Cover-Swapper's active cover (read live, never cache) | ✅ (`PlayniteGameInfoProvider` resolves `CoverImagePath` fresh every call, no caching) | user-requested |
 | "Continue where you left off" recently-played row | 🕓 | brainstormed |
 | "On this day" historical callback | 🕓 | brainstormed |
-| Never-played backlog nudge row | 🕓 | brainstormed |
-| Lightweight local milestones/badges (hours, streaks) | 🕓 | brainstormed |
+| Backlog burn-down % (owned-but-unplayed games, year-over-year trend) | ✅ (aggregate percentage only, no per-game list) | brainstormed |
+| Never-played backlog page (browsable A-Z cover grid, all-time, genre/platform chip filters) | ✅ | brainstormed |
+| Session cadence badge ("short bursts" vs "marathon sessions", from this year's session-length distribution) | ✅ | brainstormed |
+| "Almost a milestone" (closest game to its next lifetime-hours threshold) | ✅ (single forward-looking callout only) | brainstormed |
+| Full milestones/badges system (multiple earned badges, history, notifications) | 🕓 | brainstormed |
 | Compare years (side-by-side stat deltas on Recap) | 🕓 | brainstormed |
 | Search/filter on Most Played (platform/source/genre) | 🕓 | brainstormed |
 | Grid/list density toggle on Most Played | 🕓 | brainstormed |

@@ -66,13 +66,6 @@ namespace Astra.Views
             private set => SetValue(ref thisWeekSeconds, value);
         }
 
-        private GameImprovementHighlight mostImproved;
-        public GameImprovementHighlight MostImproved
-        {
-            get => mostImproved;
-            private set => SetValue(ref mostImproved, value);
-        }
-
         private List<CategoryBreakdownEntry> genreBreakdown;
         public List<CategoryBreakdownEntry> GenreBreakdown
         {
@@ -85,6 +78,32 @@ namespace Astra.Views
         {
             get => platformBreakdown;
             private set => SetValue(ref platformBreakdown, value);
+        }
+
+        private BacklogBurndownStats backlog;
+        public BacklogBurndownStats Backlog
+        {
+            get => backlog;
+            private set => SetValue(ref backlog, value);
+        }
+
+        private string backlogDeltaText;
+
+        /// <summary>Precomputed in C# rather than via a WPF StringFormat sign-section (a
+        /// "+0.0;-0.0;+0.0"-style custom numeric format is fragile inside a XAML attribute) -
+        /// same "format text in the ViewModel/service, not in XAML" convention as
+        /// GamingYearSummaryBuilder.</summary>
+        public string BacklogDeltaText
+        {
+            get => backlogDeltaText;
+            private set => SetValue(ref backlogDeltaText, value);
+        }
+
+        private SessionCadenceHighlight sessionCadence;
+        public SessionCadenceHighlight SessionCadence
+        {
+            get => sessionCadence;
+            private set => SetValue(ref sessionCadence, value);
         }
 
         public ICommand PreviousYearCommand { get; }
@@ -117,15 +136,30 @@ namespace Astra.Views
             TopPlayed = Recap.TopGames.Take(10).ToList();
             HomeTrend = plugin.TrendAggregationService.BuildMonthlyTrendForYear(Year);
 
-            var previousYearRecap = plugin.RecapAggregator.BuildRecap(Year - 1);
-            MostImproved = HomeHighlightsService.FindMostImproved(Recap.TopGames, previousYearRecap.TopGames);
-
             var weekStart = DateTime.Now.Date.AddDays(-6);
             var weekEnd = DateTime.Now.Date.AddDays(1);
             ThisWeekSeconds = plugin.TrendAggregationService.BuildTrend(TrendGranularity.Day, weekStart, weekEnd).TotalPlaytimeSeconds;
 
             GenreBreakdown = Recap.GenreBreakdown;
             PlatformBreakdown = Recap.PlatformBreakdown;
+
+            var allGames = plugin.GameInfoProvider.GetAllGames().ToList();
+
+            // Backlog cutoffs match RecapAggregator/GetSessionsForYear's own year-boundary
+            // convention (exclusive end at Jan 1 of the following year) so this stays consistent
+            // with whichever Year Home is currently browsing - unlike ThisWeekSeconds above,
+            // which is deliberately NOT year-scoped.
+            var currentCutoff = new DateTime(Year + 1, 1, 1);
+            var previousCutoff = new DateTime(Year, 1, 1);
+            var playedAsOfCurrent = plugin.Database.GetPlayedGameIds(currentCutoff);
+            var playedAsOfPrevious = plugin.Database.GetPlayedGameIds(previousCutoff);
+            Backlog = BacklogBurndownService.Compute(allGames, playedAsOfCurrent, playedAsOfPrevious, currentCutoff, previousCutoff);
+            BacklogDeltaText = Backlog == null
+                ? null
+                : $"Backlog {(Backlog.DeltaPercentagePoints >= 0 ? "+" : "")}{Backlog.DeltaPercentagePoints:0.0}pt vs last year";
+
+            var yearAnalytics = plugin.PlaytimeInsightsService.Analyze(new DateTime(Year, 1, 1), new DateTime(Year + 1, 1, 1));
+            SessionCadence = SessionCadenceService.Describe(yearAnalytics.SessionLengths);
         }
 
         /// <summary>Jumps to the game's own details page in Playnite's library view.</summary>

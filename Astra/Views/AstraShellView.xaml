@@ -18,6 +18,9 @@
         <DataTemplate DataType="{x:Type local:RecapViewModel}">
             <local:RecapView />
         </DataTemplate>
+        <DataTemplate DataType="{x:Type local:BacklogViewModel}">
+            <local:BacklogView />
+        </DataTemplate>
 
         <!-- Nav row: Tag carries this row's own "am I the active page" bool so one shared
              style/trigger set can highlight whichever row is active, hover, or neither.
@@ -133,6 +136,25 @@
                                 </StackPanel>
                             </Grid>
                             <TextBlock Text="Recap" FontSize="13" VerticalAlignment="Center" />
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <Border Style="{StaticResource NavRow}" Tag="{Binding IsBacklogActive}">
+                    <Border.InputBindings>
+                        <MouseBinding MouseAction="LeftClick" Command="{Binding ShowBacklogCommand}" />
+                    </Border.InputBindings>
+                    <Grid>
+                        <Rectangle Style="{StaticResource ActiveAccentBar}" />
+                        <StackPanel Orientation="Horizontal" Margin="16,9">
+                            <Grid Width="16" Height="16" Margin="0,0,12,0" VerticalAlignment="Center">
+                                <!-- Stack-of-games "pile" glyph: three overlapping rounded rectangles,
+                                     distinct from the other four icons' shapes. -->
+                                <Rectangle Width="14" Height="4" RadiusX="1" RadiusY="1" VerticalAlignment="Bottom" Margin="0,0,0,0" Fill="{DynamicResource GlyphBrush}" Opacity="0.45" />
+                                <Rectangle Width="14" Height="4" RadiusX="1" RadiusY="1" VerticalAlignment="Bottom" Margin="0,0,0,5" Fill="{DynamicResource GlyphBrush}" Opacity="0.7" />
+                                <Rectangle Width="14" Height="4" RadiusX="1" RadiusY="1" VerticalAlignment="Bottom" Margin="0,0,0,10" Fill="{DynamicResource GlyphBrush}" />
+                            </Grid>
+                            <TextBlock Text="Backlog" FontSize="13" VerticalAlignment="Center" />
                         </StackPanel>
                     </Grid>
                 </Border>

@@ -61,6 +61,41 @@
         <Setter Property="Opacity" Value="0.75" />
     </Style>
 
+    <!-- Multi-select genre/platform filter chip (Backlog page). A plain ToggleButton rather than a
+         WPF multi-select ListBox, since ListBox has no built-in two-way "SelectedItems" binding and
+         this codebase's convention is to hand-roll small interactive controls (see MostPlayedView's
+         ViewToggleButtonBase) rather than add a UI-behavior library. -->
+    <Style x:Key="FilterChipToggle" TargetType="ToggleButton">
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NormalBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#14808080" />
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="{DynamicResource GlyphBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource PopupBackgroundBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+
     <!-- Reusable 2:3 cover thumbnail: a colored-initials placeholder Border with the
          real cover Image layered on top. A null/unresolvable CoverImagePath makes the
          Image draw nothing, so the placeholder underneath shows through automatically -

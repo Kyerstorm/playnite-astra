@@ -29,7 +29,8 @@ namespace Astra.Services
                 // straight to List<Genre>/List<Platform> (each with a .Name), not just Guid id lists —
                 // confirmed via reflection against the installed Playnite.SDK.dll.
                 Genres = g.Genres?.Select(x => x.Name).Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>(),
-                Platforms = g.Platforms?.Select(x => x.Name).Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>()
+                Platforms = g.Platforms?.Select(x => x.Name).Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>(),
+                IsHidden = g.Hidden
             }).ToList();
         }
 

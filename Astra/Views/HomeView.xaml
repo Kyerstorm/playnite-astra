@@ -71,7 +71,7 @@
     <Grid Margin="24">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" /> <!-- 0: header -->
-            <RowDefinition Height="Auto" /> <!-- 1: highlights strip -->
+            <RowDefinition Height="Auto" /> <!-- 1: highlights strip (this week / backlog / cadence / next milestone) -->
             <RowDefinition Height="Auto" /> <!-- 2: overview stat cards -->
             <RowDefinition Height="Auto" /> <!-- 3: top played -->
             <RowDefinition Height="Auto" /> <!-- 4: new this year -->
@@ -89,11 +89,12 @@
             </StackPanel>
         </DockPanel>
 
-        <!-- Highlights strip: this week so far, longest session this year, most improved game.
-             "This week" is a trailing 7-calendar-day window ending today, deliberately independent
-             of the Year selector below - it's a "right now" fact, not year-scoped. Longest
-             session/Most improved fall back to plain text (TargetNullValue) when there's nothing
-             to show yet, rather than hiding the card. -->
+        <!-- Highlights strip: this week so far, backlog burn-down (year-scoped, follows the Year
+             selector), and session cadence badge (short bursts vs marathon sessions, from this
+             year's session-length distribution). "This week" is a trailing 7-calendar-day window
+             ending today, deliberately independent of the Year selector - it's a "right now" fact,
+             not year-scoped. The other two fall back to plain text (TargetNullValue) when there's
+             nothing to show yet, rather than hiding the card. -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
@@ -108,14 +109,14 @@
             </Border>
             <Border Grid.Column="1" Style="{StaticResource StatCard}">
                 <StackPanel>
-                    <TextBlock Text="{Binding Recap.LongestSession.DurationSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" Style="{StaticResource StatValue}" />
-                    <TextBlock Text="{Binding Recap.LongestSession.GameName, TargetNullValue='Longest session — no sessions yet'}" Style="{StaticResource StatLabel}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding Backlog.BacklogPercent, StringFormat='{}{0:0}%'}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="{Binding BacklogDeltaText}" Style="{StaticResource StatLabel}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
             <Border Grid.Column="2" Style="{StaticResource StatCard}">
                 <StackPanel>
-                    <TextBlock Text="{Binding MostImproved.DeltaSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='+{0}h'}" Style="{StaticResource StatValue}" />
-                    <TextBlock Text="{Binding MostImproved.Name, TargetNullValue='Most improved — not enough data yet'}" Style="{StaticResource StatLabel}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding SessionCadence.Label, TargetNullValue='—'}" Style="{StaticResource StatValue}" FontSize="18" />
+                    <TextBlock Text="{Binding SessionCadence.Sentence, TargetNullValue='Play cadence — not enough data yet'}" Style="{StaticResource StatLabel}" TextWrapping="Wrap" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -167,8 +168,14 @@
             </ItemsControl>
         </StackPanel>
 
-        <!-- New this year, ordered most-recently-added first: a 2-row carousel (vertical wrap,
-             fixed-height items so it wraps after exactly 2 rows) that scrolls horizontally. -->
+        <!-- New this year, ordered most-recently-added first: a single-row horizontally-
+             scrolling strip (per the UI redesign spec's "New This Year" carousel). A plain
+             horizontal StackPanel is used instead of a wrapping panel so the row's height is
+             always exactly one cell tall (176, from CarouselCoverCellTemplate) with no leftover
+             space - an earlier version used a WrapPanel with a hardcoded Height="368" sized for
+             2 rows, but 368 was a few px short of fitting two 188px-tall (176 + margin) items, so
+             every column wrapped after just 1 item anyway, leaving ~190px of dead space below
+             each cover. -->
         <StackPanel Grid.Row="4" Margin="0,20,0,0">
             <TextBlock Text="NEW THIS YEAR" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
             <!-- PreviewMouseWheel redirects vertical wheel input to this ScrollViewer's own
@@ -177,12 +184,12 @@
                  vertical scroll itself) bubbles up to the page-level ScrollViewer added above and
                  scrolls the whole Home page instead of this strip, since the two ScrollViewers are
                  now nested. -->
-            <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="368"
+            <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
                           PreviewMouseWheel="OnCarouselPreviewMouseWheel">
                 <ItemsControl ItemsSource="{Binding Recap.NewGamesThisYear}" ItemTemplate="{StaticResource CarouselCoverCellTemplate}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Vertical" Height="368" />
+                            <StackPanel Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>

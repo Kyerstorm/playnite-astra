@@ -15,6 +15,10 @@ namespace Astra.Services
         /// <summary>Resolved genre/platform names, never null (empty list when the game has none set).</summary>
         public List<string> Genres { get; set; } = new List<string>();
         public List<string> Platforms { get; set; } = new List<string>();
+
+        /// <summary>Playnite's own user-set "hidden from library" flag. Used by BacklogService to
+        /// exclude hidden games from the Backlog page - unrelated to any Astra session data.</summary>
+        public bool IsHidden { get; set; }
     }
 
     /// <summary>

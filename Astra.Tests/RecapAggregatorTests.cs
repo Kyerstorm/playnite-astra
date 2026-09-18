@@ -167,31 +167,6 @@ namespace Astra.Tests
         }
 
         [Fact]
-        public void BuildRecap_LongestSession_ReturnsSessionWithMaxDuration()
-        {
-            var db = TestDatabaseFactory.CreateTemp();
-            var gameId = Guid.NewGuid();
-            db.InsertSession(gameId, new DateTime(2026, 3, 1), 1800);
-            db.InsertSession(gameId, new DateTime(2026, 3, 3), 22320); // 6.2h, the longest
-
-            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Baldur's Gate 3" });
-            var recap = new RecapAggregator(db, games).BuildRecap(2026);
-
-            Assert.Equal(22320, recap.LongestSession.DurationSeconds);
-            Assert.Equal("Baldur's Gate 3", recap.LongestSession.GameName);
-            Assert.Equal(new DateTime(2026, 3, 3), recap.LongestSession.StartedAt);
-        }
-
-        [Fact]
-        public void BuildRecap_LongestSession_NullWhenNoSessions()
-        {
-            var db = TestDatabaseFactory.CreateTemp();
-            var recap = new RecapAggregator(db, new FakeGameInfoProvider()).BuildRecap(2026);
-
-            Assert.Null(recap.LongestSession);
-        }
-
-        [Fact]
         public void BuildRecap_GenreBreakdown_SumsPlaytimeAcrossGamesSharingAGenre()
         {
             var db = TestDatabaseFactory.CreateTemp();

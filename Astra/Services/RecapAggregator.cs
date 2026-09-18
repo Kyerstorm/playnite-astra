@@ -76,19 +76,6 @@ namespace Astra.Services
                 })
                 .ToList();
 
-            var longestSession = sessions.OrderByDescending(s => s.DurationSeconds).FirstOrDefault();
-            if (longestSession != null)
-            {
-                games.TryGetValue(longestSession.GameId, out var longestGame);
-                recap.LongestSession = new LongestSessionHighlight
-                {
-                    GameId = longestSession.GameId,
-                    GameName = longestGame?.Name ?? "Unknown game",
-                    StartedAt = longestSession.StartedAt,
-                    DurationSeconds = longestSession.DurationSeconds
-                };
-            }
-
             recap.GenreBreakdown = BuildCategoryBreakdown(recap.TopGames, games, gameInfo => gameInfo.Genres);
             recap.PlatformBreakdown = BuildCategoryBreakdown(recap.TopGames, games, gameInfo => gameInfo.Platforms);
 
