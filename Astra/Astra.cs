@@ -27,6 +27,7 @@ namespace Astra
         internal readonly TrendAggregationService TrendAggregationService;
         internal readonly PlaytimeInsightsService PlaytimeInsightsService;
         internal readonly RecapExporter RecapExporter;
+        internal readonly ShareCardRenderer ShareCardRenderer;
         internal readonly GameActivityImporter GameActivityImporter;
 
         public Astra(IPlayniteAPI api) : base(api)
@@ -41,6 +42,7 @@ namespace Astra
             TrendAggregationService = new TrendAggregationService(Database);
             PlaytimeInsightsService = new PlaytimeInsightsService(Database);
             RecapExporter = new RecapExporter();
+            ShareCardRenderer = new ShareCardRenderer();
             GameActivityImporter = new GameActivityImporter(Database);
         }
 

@@ -10,6 +10,7 @@ Run only the test class mapped to the feature you're changing, unless you touche
 | Yearly recap math | `RecapAggregatorTests` | Totals only include the selected year, top-games ranking, new-games-this-year filter, unknown game ID falls back gracefully, empty-year case |
 | GameActivity import | `GameActivityImporterTests` | Missing install reported cleanly, real on-disk schema imports correctly, re-running is idempotent (no duplicate sessions), malformed files are skipped and reported rather than crashing, non-GUID filenames ignored |
 | JSON export | `RecapExporterTests` | Recap round-trips through JSON without data loss |
+| Share card data prep | `ShareCardViewModelTests` | `TopFive` returns all games when there are fewer than 5, truncates to the first 5 when there are more, and returns an empty (never null) list for a null `Recap` or an empty `TopGames` |
 | Manual playtime edit | `PlaytimeOverrideTests` (storage) + `RecapAggregatorTests` (aggregation) | Override round-trips and upserts rather than duplicating, is scoped to its own year, clears individually or via `ClearAllData`; recap applies an override in place of the computed sum, total reflects it, an override can change ranking order, unrelated games are unaffected |
 | Leaderboard sorting | `LeaderboardSorterTests` | Sorting by playtime/sessions/average session length each produce the correct order; a game with zero sessions doesn't throw and sorts last under average session length |
 | Playtime trends (day/week/month/year) | `TrendAggregationServiceTests` | Bucketing for each granularity, calendar (not rolling) month/year boundaries, Monday-start weeks, multiple sessions summed per period, sessions crossing midnight attributed to their start day only, empty periods kept as zero points, empty ranges don't throw, range boundaries (start inclusive/end exclusive), no duplicate counting, local-date interpretation, long ranges, average-per-period uses total periods not just active ones, `BuildMonthlyTrendForYear` matches the equivalent explicit `BuildTrend` call (this is what keeps Home's mini-chart and Trends' Month view in agreement), per-bucket session/game counts, leap year (366 daily buckets) |
@@ -156,4 +157,13 @@ Repeat the checks from §7/§8 with the Trends page open: confirm the chart stay
 10. Switch to Month or Year granularity and confirm a Year-over-Year card appears (hidden in Day/Week) showing both years' Playtime/Sessions/Active Days/Games Touched side by side, with no red/green coloring, plus a 12-month grouped-bar comparison.
 11. Playtime Concentration / Game Rotation: confirm only percentages and counts are shown — no game names, no cover art, no ranked list anywhere in these two cards.
 12. "YOUR GAMING YEAR": confirm each sentence reads naturally (correct singular/plural), and that on a fresh install / zero-data range, the section either shows a single "You played on 0 days across 0 games." line or omits gracefully — never a crash or a "NaN"/"null" fragment.
+
+### 18. Share card (PNG)
+
+1. On the Recap page, select a year with recorded sessions and click "Share card (PNG)."
+2. Confirm the `SaveFile` dialog appears filtered to `*.png`, and after saving, `StatusMessage` reports the save path.
+3. Open the saved file: confirm it's a 1080×1350 PNG, the year/hours/sessions/active days/new games match what's shown on the Recap page, and the top 5 games appear in the same order as "Most played" (sorted by playtime) with real cover art or the colored-initials fallback for games without one.
+4. Repeat with a year that has zero recorded sessions — confirm no crash, and the card still renders with zeroed stats and an empty top-games section.
+5. Repeat with a year that has fewer than 5 played games — confirm the top-games section isn't padded with blank rows.
+6. Switch Playnite to a different (ideally light) theme and generate another card for the same year. Confirm the two PNGs use identical colors (the card's fixed brand palette does not follow `DynamicResource`/the active Playnite theme — a deliberate, isolated exception documented in `CLAUDE.md`).
 13. Confirm none of the above ever shows a "Top Games" list, a game cover grid, or a leaderboard — that remains Most Played's page exclusively.
