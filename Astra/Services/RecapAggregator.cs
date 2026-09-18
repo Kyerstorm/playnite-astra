@@ -76,7 +76,71 @@ namespace Astra.Services
                 })
                 .ToList();
 
+            var longestSession = sessions.OrderByDescending(s => s.DurationSeconds).FirstOrDefault();
+            if (longestSession != null)
+            {
+                games.TryGetValue(longestSession.GameId, out var longestGame);
+                recap.LongestSession = new LongestSessionHighlight
+                {
+                    GameId = longestSession.GameId,
+                    GameName = longestGame?.Name ?? "Unknown game",
+                    StartedAt = longestSession.StartedAt,
+                    DurationSeconds = longestSession.DurationSeconds
+                };
+            }
+
+            recap.GenreBreakdown = BuildCategoryBreakdown(recap.TopGames, games, gameInfo => gameInfo.Genres);
+            recap.PlatformBreakdown = BuildCategoryBreakdown(recap.TopGames, games, gameInfo => gameInfo.Platforms);
+
             return recap;
+        }
+
+        /// <summary>Fans each game's (possibly-overridden) year playtime out to every one of its genres/
+        /// platforms and sums by label. A game with multiple genres counts its FULL playtime under each
+        /// one it belongs to - this is a deliberate, documented trade-off (see RecapAggregatorTests), not
+        /// a bug: it answers "how much time went into RPGs" rather than trying to split one game's hours
+        /// fractionally across genres, which would be arbitrary. Games with no genres/platforms recorded
+        /// are silently excluded from the breakdown (never shown as "Uncategorized"). Capped at the top 6
+        /// entries by playtime - this is a quick-glance widget, not an exhaustive report.</summary>
+        private static List<CategoryBreakdownEntry> BuildCategoryBreakdown(
+            List<GameRecapEntry> topGames,
+            Dictionary<Guid, GameInfo> games,
+            Func<GameInfo, List<string>> selectLabels)
+        {
+            var totals = new Dictionary<string, long>();
+
+            foreach (var entry in topGames)
+            {
+                if (!games.TryGetValue(entry.GameId, out var info))
+                {
+                    continue;
+                }
+
+                foreach (var label in selectLabels(info) ?? new List<string>())
+                {
+                    totals[label] = totals.TryGetValue(label, out var existing) ? existing + entry.PlaytimeSeconds : entry.PlaytimeSeconds;
+                }
+            }
+
+            if (totals.Count == 0)
+            {
+                return new List<CategoryBreakdownEntry>();
+            }
+
+            var sumOfAllEntries = totals.Values.Sum();
+            var maxEntry = totals.Values.Max();
+
+            return totals
+                .OrderByDescending(kv => kv.Value)
+                .Take(6)
+                .Select(kv => new CategoryBreakdownEntry
+                {
+                    Label = kv.Key,
+                    PlaytimeSeconds = kv.Value,
+                    Percentage = sumOfAllEntries > 0 ? kv.Value * 100.0 / sumOfAllEntries : 0,
+                    BarFraction = maxEntry > 0 ? kv.Value / (double)maxEntry : 0
+                })
+                .ToList();
         }
     }
 }

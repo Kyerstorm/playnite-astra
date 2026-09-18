@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Input;
 using Astra.Models;
+using Astra.Services;
 
 namespace Astra.Views
 {
@@ -54,6 +55,38 @@ namespace Astra.Views
             ? "Welcome back"
             : $"Welcome back, {settings.DisplayName}";
 
+        private long thisWeekSeconds;
+
+        /// <summary>Trailing 7-calendar-day window ending today - deliberately NOT year-scoped and
+        /// NOT the Monday-start "week" convention Trends uses. It's a "right now" fact, shown the
+        /// same regardless of which Year the page is currently browsing.</summary>
+        public long ThisWeekSeconds
+        {
+            get => thisWeekSeconds;
+            private set => SetValue(ref thisWeekSeconds, value);
+        }
+
+        private GameImprovementHighlight mostImproved;
+        public GameImprovementHighlight MostImproved
+        {
+            get => mostImproved;
+            private set => SetValue(ref mostImproved, value);
+        }
+
+        private List<CategoryBreakdownEntry> genreBreakdown;
+        public List<CategoryBreakdownEntry> GenreBreakdown
+        {
+            get => genreBreakdown;
+            private set => SetValue(ref genreBreakdown, value);
+        }
+
+        private List<CategoryBreakdownEntry> platformBreakdown;
+        public List<CategoryBreakdownEntry> PlatformBreakdown
+        {
+            get => platformBreakdown;
+            private set => SetValue(ref platformBreakdown, value);
+        }
+
         public ICommand PreviousYearCommand { get; }
         public ICommand NextYearCommand { get; }
         public ICommand OpenGameDetailsCommand { get; }
@@ -83,6 +116,16 @@ namespace Astra.Views
             Recap = plugin.RecapAggregator.BuildRecap(Year);
             TopPlayed = Recap.TopGames.Take(10).ToList();
             HomeTrend = plugin.TrendAggregationService.BuildMonthlyTrendForYear(Year);
+
+            var previousYearRecap = plugin.RecapAggregator.BuildRecap(Year - 1);
+            MostImproved = HomeHighlightsService.FindMostImproved(Recap.TopGames, previousYearRecap.TopGames);
+
+            var weekStart = DateTime.Now.Date.AddDays(-6);
+            var weekEnd = DateTime.Now.Date.AddDays(1);
+            ThisWeekSeconds = plugin.TrendAggregationService.BuildTrend(TrendGranularity.Day, weekStart, weekEnd).TotalPlaytimeSeconds;
+
+            GenreBreakdown = Recap.GenreBreakdown;
+            PlatformBreakdown = Recap.PlatformBreakdown;
         }
 
         /// <summary>Jumps to the game's own details page in Playnite's library view.</summary>

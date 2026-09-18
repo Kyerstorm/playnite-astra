@@ -14,27 +14,11 @@
             <local:SecondsToHoursMinutesConverter x:Key="SecondsToHoursMinutesConverter" />
             <local:MonthNumberToNameConverter x:Key="MonthNumberToNameConverter" />
             <local:NullableEnumToStringConverter x:Key="NullableEnumToStringConverter" />
-            <local:BarFractionToGridLengthConverter x:Key="BarFractionToGridLengthConverter" />
             <local:IntensityToOpacityConverter x:Key="IntensityToOpacityConverter" />
 
-            <!-- One row of a horizontal bar chart: label, then a two-column track where the left
-                 column's star-width is the value's fraction of the busiest row (see
-                 BarFractionToGridLengthConverter) - used for both Weekday and Session Length
-                 distributions so they read as one visual language. -->
-            <Style x:Key="BarTrack" TargetType="Border">
-                <Setter Property="Background" Value="{DynamicResource GlyphBrush}" />
-                <Setter Property="CornerRadius" Value="3" />
-                <Setter Property="Height" Value="14" />
-                <Setter Property="Opacity" Value="0.75" />
-            </Style>
-
-            <!-- Two-column analytics card (Gaming Rhythm, Session Activity, ...) - a StatCard-styled
-                 border with a section title and a grid of label/value pairs. Reused for every
-                 non-chart analytics section added across the Trends extension phases. -->
-            <Style x:Key="AnalyticsCard" TargetType="Border" BasedOn="{StaticResource StatCard}">
-                <Setter Property="Padding" Value="18,16" />
-                <Setter Property="Margin" Value="6,6,6,10" />
-            </Style>
+            <!-- BarTrack/AnalyticsCard/BarFractionToGridLengthConverter now live in SharedStyles.xaml
+                 (merged in above) so Home's genre/platform breakdown can reuse the identical bar-list
+                 visual language - see SharedStyles.xaml for the definitions. -->
             <Style x:Key="AnalyticsMetricLabel" TargetType="TextBlock" BasedOn="{StaticResource StatLabel}">
                 <Setter Property="Margin" Value="0,0,0,2" />
             </Style>

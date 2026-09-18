@@ -58,13 +58,25 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
+    <!-- The page content is taller than a typical window once every section is populated
+         (highlights strip + 4 stat cards + top played + new this year + genre/platform
+         breakdown + trend chart) - a plain Grid with a trailing Height="*" row has no way to
+         reach the overflow (WPF gives Auto rows their full desired height regardless of
+         available space and only shrinks Star rows to absorb the deficit; with nothing above
+         this UserControl providing a scroll region either - see AstraShellView.xaml's bare
+         ContentControl - the trailing row was silently clipped instead of scrollable). Wrapping
+         the whole page in a ScrollViewer, with every row now Height="Auto", fixes this and keeps
+         every section reachable regardless of window height or how many sections Home grows to. -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid Margin="24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" /> <!-- 0: header -->
+            <RowDefinition Height="Auto" /> <!-- 1: highlights strip -->
+            <RowDefinition Height="Auto" /> <!-- 2: overview stat cards -->
+            <RowDefinition Height="Auto" /> <!-- 3: top played -->
+            <RowDefinition Height="Auto" /> <!-- 4: new this year -->
+            <RowDefinition Height="Auto" /> <!-- 5: genre/platform breakdown -->
+            <RowDefinition Height="Auto" /> <!-- 6: playtime trend -->
         </Grid.RowDefinitions>
 
         <!-- Header: greeting + year navigation -->
@@ -77,8 +89,39 @@
             </StackPanel>
         </DockPanel>
 
-        <!-- Overview stat cards -->
+        <!-- Highlights strip: this week so far, longest session this year, most improved game.
+             "This week" is a trailing 7-calendar-day window ending today, deliberately independent
+             of the Year selector below - it's a "right now" fact, not year-scoped. Longest
+             session/Most improved fall back to plain text (TargetNullValue) when there's nothing
+             to show yet, rather than hiding the card. -->
         <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding ThisWeekSeconds, Converter={StaticResource SecondsToHoursConverter}}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Hours this week" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Recap.LongestSession.DurationSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="{Binding Recap.LongestSession.GameName, TargetNullValue='Longest session — no sessions yet'}" Style="{StaticResource StatLabel}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding MostImproved.DeltaSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='+{0}h'}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="{Binding MostImproved.Name, TargetNullValue='Most improved — not enough data yet'}" Style="{StaticResource StatLabel}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Overview stat cards -->
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
@@ -113,7 +156,7 @@
         </Grid>
 
         <!-- Top 10 most played, by cover - one row, filling the full width -->
-        <StackPanel Grid.Row="2" Margin="0,16,0,0">
+        <StackPanel Grid.Row="3" Margin="0,16,0,0">
             <TextBlock Text="TOP PLAYED" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
             <ItemsControl ItemsSource="{Binding TopPlayed}" ItemTemplate="{StaticResource WideCoverCellTemplate}">
                 <ItemsControl.ItemsPanel>
@@ -126,9 +169,16 @@
 
         <!-- New this year, ordered most-recently-added first: a 2-row carousel (vertical wrap,
              fixed-height items so it wraps after exactly 2 rows) that scrolls horizontally. -->
-        <StackPanel Grid.Row="3" Margin="0,20,0,0">
+        <StackPanel Grid.Row="4" Margin="0,20,0,0">
             <TextBlock Text="NEW THIS YEAR" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
-            <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="368">
+            <!-- PreviewMouseWheel redirects vertical wheel input to this ScrollViewer's own
+                 horizontal offset and marks the event handled - without this, a mouse wheel over
+                 this carousel (VerticalScrollBarVisibility="Disabled", so it can't consume a
+                 vertical scroll itself) bubbles up to the page-level ScrollViewer added above and
+                 scrolls the whole Home page instead of this strip, since the two ScrollViewers are
+                 now nested. -->
+            <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="368"
+                          PreviewMouseWheel="OnCarouselPreviewMouseWheel">
                 <ItemsControl ItemsSource="{Binding Recap.NewGamesThisYear}" ItemTemplate="{StaticResource CarouselCoverCellTemplate}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -139,10 +189,78 @@
             </ScrollViewer>
         </StackPanel>
 
+        <!-- Genre/platform playtime breakdown - a game counts its FULL playtime under every genre/
+             platform it belongs to (a multi-genre game is not fractionally split), so percentages
+             within one column sum to ~100% of that column, not of the year's total hours. See
+             RecapAggregator.BuildCategoryBreakdown. -->
+        <StackPanel Grid.Row="5" Margin="0,20,0,0">
+            <TextBlock Text="WHAT YOU PLAYED" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource AnalyticsCard}">
+                    <StackPanel>
+                        <TextBlock Text="BY GENRE" Style="{StaticResource SectionLabel}" Margin="0,0,0,10" />
+                        <ItemsControl ItemsSource="{Binding GenreBreakdown}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3" ToolTipService.ToolTip="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="11" Opacity="0.8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <Grid Grid.Column="1" Margin="0,0,8,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{Binding BarFraction, Converter={StaticResource BarFractionToGridLengthConverter}}" />
+                                                <ColumnDefinition Width="{Binding BarFraction, Converter={StaticResource BarFractionToGridLengthConverter}, ConverterParameter=remainder}" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Style="{StaticResource BarTrack}" />
+                                        </Grid>
+                                        <TextBlock Grid.Column="2" Text="{Binding Percentage, StringFormat='{}{0:0.#}%'}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource AnalyticsCard}">
+                    <StackPanel>
+                        <TextBlock Text="BY PLATFORM" Style="{StaticResource SectionLabel}" Margin="0,0,0,10" />
+                        <ItemsControl ItemsSource="{Binding PlatformBreakdown}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3" ToolTipService.ToolTip="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="11" Opacity="0.8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <Grid Grid.Column="1" Margin="0,0,8,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{Binding BarFraction, Converter={StaticResource BarFractionToGridLengthConverter}}" />
+                                                <ColumnDefinition Width="{Binding BarFraction, Converter={StaticResource BarFractionToGridLengthConverter}, ConverterParameter=remainder}" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Style="{StaticResource BarTrack}" />
+                                        </Grid>
+                                        <TextBlock Grid.Column="2" Text="{Binding Percentage, StringFormat='{}{0:0.#}%'}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </Grid>
+        </StackPanel>
+
         <!-- Compact monthly playtime trend for the selected year - an overview teaser, not the analytics
              experience (no Day/Week/Month/Year controls, no range picker: that's the dedicated Trends
              page). "View Trends ->" hands off to it already scoped to Month/<this year>. -->
-        <StackPanel Grid.Row="4" Margin="0,20,0,0">
+        <StackPanel Grid.Row="6" Margin="0,20,0,0">
             <DockPanel LastChildFill="False" Margin="6,0,0,8">
                 <TextBlock Text="PLAYTIME TREND" Style="{StaticResource SectionLabel}" DockPanel.Dock="Left" />
                 <TextBlock DockPanel.Dock="Right" Cursor="Hand" FontSize="12" Foreground="{DynamicResource GlyphBrush}">
@@ -157,4 +275,5 @@
             </Border>
         </StackPanel>
     </Grid>
+    </ScrollViewer>
 </UserControl>

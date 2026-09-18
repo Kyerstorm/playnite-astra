@@ -24,7 +24,12 @@ namespace Astra.Services
                 // Resolved fresh every call, never cached beyond this — Game.CoverImage can
                 // change out from under Astra (e.g. Cover-Swapper rotating covers), and re-reading
                 // it live is the only thing that keeps Astra showing whatever cover is currently active.
-                CoverImagePath = ResolveCoverPath(g.CoverImage)
+                CoverImagePath = ResolveCoverPath(g.CoverImage),
+                // Game.Genres/Game.Platforms are Playnite SDK convenience properties that resolve
+                // straight to List<Genre>/List<Platform> (each with a .Name), not just Guid id lists —
+                // confirmed via reflection against the installed Playnite.SDK.dll.
+                Genres = g.Genres?.Select(x => x.Name).Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>(),
+                Platforms = g.Platforms?.Select(x => x.Name).Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>()
             }).ToList();
         }
 

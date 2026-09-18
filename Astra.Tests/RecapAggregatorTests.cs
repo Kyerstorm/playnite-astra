@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using Astra.Services;
 using Astra.Tests.Fakes;
@@ -163,6 +164,117 @@ namespace Astra.Tests
 
             var untouchedEntry = recap.TopGames.Single(e => e.GameId == untouchedGame);
             Assert.Equal(20 * 3600, untouchedEntry.PlaytimeSeconds);
+        }
+
+        [Fact]
+        public void BuildRecap_LongestSession_ReturnsSessionWithMaxDuration()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 3, 1), 1800);
+            db.InsertSession(gameId, new DateTime(2026, 3, 3), 22320); // 6.2h, the longest
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Baldur's Gate 3" });
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            Assert.Equal(22320, recap.LongestSession.DurationSeconds);
+            Assert.Equal("Baldur's Gate 3", recap.LongestSession.GameName);
+            Assert.Equal(new DateTime(2026, 3, 3), recap.LongestSession.StartedAt);
+        }
+
+        [Fact]
+        public void BuildRecap_LongestSession_NullWhenNoSessions()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var recap = new RecapAggregator(db, new FakeGameInfoProvider()).BuildRecap(2026);
+
+            Assert.Null(recap.LongestSession);
+        }
+
+        [Fact]
+        public void BuildRecap_GenreBreakdown_SumsPlaytimeAcrossGamesSharingAGenre()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var rpgA = Guid.NewGuid();
+            var rpgB = Guid.NewGuid();
+            db.InsertSession(rpgA, new DateTime(2026, 1, 1), 3600);
+            db.InsertSession(rpgB, new DateTime(2026, 1, 1), 1800);
+
+            var games = new FakeGameInfoProvider()
+                .Add(new GameInfo { Id = rpgA, Name = "A", Genres = new List<string> { "RPG" } })
+                .Add(new GameInfo { Id = rpgB, Name = "B", Genres = new List<string> { "RPG" } });
+
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            var rpgEntry = Assert.Single(recap.GenreBreakdown);
+            Assert.Equal("RPG", rpgEntry.Label);
+            Assert.Equal(3600 + 1800, rpgEntry.PlaytimeSeconds);
+        }
+
+        [Fact]
+        public void BuildRecap_GenreBreakdown_MultiGenreGame_CountsFullyUnderEachGenre()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 1, 1), 3600);
+
+            var games = new FakeGameInfoProvider()
+                .Add(new GameInfo { Id = gameId, Name = "Hybrid", Genres = new List<string> { "RPG", "Action" } });
+
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            Assert.Equal(2, recap.GenreBreakdown.Count);
+            Assert.All(recap.GenreBreakdown, e => Assert.Equal(3600, e.PlaytimeSeconds));
+        }
+
+        [Fact]
+        public void BuildRecap_GenreBreakdown_GameWithNoGenres_ExcludedFromBreakdown()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 1, 1), 3600);
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Uncategorized" });
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            Assert.Empty(recap.GenreBreakdown);
+        }
+
+        [Fact]
+        public void BuildRecap_PlatformBreakdown_SumsPlaytimeByPlatform()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 1, 1), 7200);
+
+            var games = new FakeGameInfoProvider()
+                .Add(new GameInfo { Id = gameId, Name = "PC Game", Platforms = new List<string> { "PC" } });
+
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            var pcEntry = Assert.Single(recap.PlatformBreakdown);
+            Assert.Equal("PC", pcEntry.Label);
+            Assert.Equal(7200, pcEntry.PlaytimeSeconds);
+        }
+
+        [Fact]
+        public void BuildRecap_GenreBreakdown_OrderedDescendingAndCappedAtSix()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var games = new FakeGameInfoProvider();
+
+            for (var i = 0; i < 8; i++)
+            {
+                var gameId = Guid.NewGuid();
+                var seconds = (8 - i) * 3600; // strictly descending per genre
+                db.InsertSession(gameId, new DateTime(2026, 1, 1), seconds);
+                games.Add(new GameInfo { Id = gameId, Name = $"Game {i}", Genres = new List<string> { $"Genre{i}" } });
+            }
+
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            Assert.Equal(6, recap.GenreBreakdown.Count);
+            Assert.Equal("Genre0", recap.GenreBreakdown.First().Label); // 8h, the largest
         }
     }
 }

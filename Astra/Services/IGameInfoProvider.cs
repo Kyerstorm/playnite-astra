@@ -11,6 +11,10 @@ namespace Astra.Services
 
         /// <summary>Resolved local file path to the game's current cover, or null if unset/unresolvable.</summary>
         public string CoverImagePath { get; set; }
+
+        /// <summary>Resolved genre/platform names, never null (empty list when the game has none set).</summary>
+        public List<string> Genres { get; set; } = new List<string>();
+        public List<string> Platforms { get; set; } = new List<string>();
     }
 
     /// <summary>
