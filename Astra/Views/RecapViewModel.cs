@@ -88,6 +88,7 @@ namespace Astra.Views
         public ICommand PreviousYearCommand { get; }
         public ICommand NextYearCommand { get; }
         public ICommand ExportCommand { get; }
+        public ICommand ShareCardCommand { get; }
         public ICommand ClearDataCommand { get; }
         public ICommand ImportGameActivityCommand { get; }
         public ICommand EditPlaytimeCommand { get; }
@@ -101,6 +102,7 @@ namespace Astra.Views
             PreviousYearCommand = new RelayCommand(_ => Year--);
             NextYearCommand = new RelayCommand(_ => Year++, _ => Year < DateTime.Now.Year);
             ExportCommand = new RelayCommand(_ => Export());
+            ShareCardCommand = new RelayCommand(_ => ShareCard());
             ClearDataCommand = new RelayCommand(_ => ClearData());
             ImportGameActivityCommand = new RelayCommand(_ => ImportGameActivity());
             EditPlaytimeCommand = new RelayCommand(p => EditPlaytime(p as GameRecapEntry));
@@ -131,6 +133,19 @@ namespace Astra.Views
 
             plugin.RecapExporter.ExportToFile(Recap, path);
             StatusMessage = $"Recap exported to {path}";
+        }
+
+        private void ShareCard()
+        {
+            var path = plugin.Api.Dialogs.SaveFile("PNG image|*.png");
+            if (string.IsNullOrEmpty(path))
+            {
+                return;
+            }
+
+            var data = new ShareCardViewModel { Recap = Recap, DisplayName = settings.DisplayName };
+            plugin.ShareCardRenderer.RenderToFile(data, path);
+            StatusMessage = $"Share card saved to {path}";
         }
 
         private void ClearData()

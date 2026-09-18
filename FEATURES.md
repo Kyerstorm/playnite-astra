@@ -50,7 +50,7 @@ product-boundary rationale and per-section definitions.
 |---|---|---|
 | Annual summary (total hours, most-played, new games that year) | ✅ | YearInReview |
 | JSON export of the recap | ✅ | YearInReview |
-| Shareable image/card export | 🕓 | YearInReview |
+| Shareable image/card export | ✅ | YearInReview |
 | Import a friend's shared report for comparison | 🕓 | YearInReview |
 
 ## Hardware/performance monitoring

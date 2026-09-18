@@ -141,6 +141,7 @@
         <DockPanel Grid.Row="3" Margin="0,16,0,0" LastChildFill="False">
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Left">
                 <Button Content="Export recap (JSON)" Command="{Binding ExportCommand}" Padding="10,4" Margin="0,0,8,0" />
+                <Button Content="Share card (PNG)" Command="{Binding ShareCardCommand}" Padding="10,4" Margin="0,0,8,0" />
                 <Button Content="Import from GameActivity" Command="{Binding ImportGameActivityCommand}" Padding="10,4" Margin="0,0,8,0" />
                 <Button Content="Clear Astra data" Command="{Binding ClearDataCommand}" Padding="10,4" />
             </StackPanel>

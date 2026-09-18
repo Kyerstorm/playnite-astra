@@ -1,0 +1,122 @@
+<UserControl x:Class="Astra.Views.ShareCardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:Astra.Views">
+    <!--
+        Fixed-size (1080x1350 - must match ShareCardRenderer.CardWidth/CardHeight exactly) card
+        rendered off-screen by ShareCardRenderer and never shown in the app's own nav. Deliberately
+        does NOT merge SharedStyles.xaml or use any DynamicResource theme brush: this artifact
+        leaves the themed app (shared outside Playnite), so it needs a palette that looks identical
+        regardless of the generating machine's active Playnite theme - a confirmed, narrow exception
+        to this codebase's otherwise-universal DynamicResource convention. Colors below are the
+        original UI mockup's dark/teal palette, used here as real shipped color for the first time.
+    -->
+    <UserControl.Resources>
+        <SolidColorBrush x:Key="CardBackgroundBrush" Color="#1B1C1F" />
+        <SolidColorBrush x:Key="PanelBrush" Color="#24262B" />
+        <SolidColorBrush x:Key="AccentBrush" Color="#3EC6E0" />
+        <SolidColorBrush x:Key="PrimaryTextBrush" Color="White" />
+        <SolidColorBrush x:Key="SecondaryTextBrush" Color="#9A9CA6" />
+
+        <local:SecondsToHoursConverter x:Key="SecondsToHoursConverter" />
+        <local:PathToImageSourceConverter x:Key="PathToImageSourceConverter" />
+        <local:ColorHexToBrushConverter x:Key="ColorHexToBrushConverter" />
+
+        <Style x:Key="CardPanel" TargetType="Border">
+            <Setter Property="Background" Value="{StaticResource PanelBrush}" />
+            <Setter Property="CornerRadius" Value="10" />
+            <Setter Property="Padding" Value="18,16" />
+        </Style>
+        <Style x:Key="SectionLabel" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="FontWeight" Value="SemiBold" />
+            <Setter Property="Foreground" Value="{StaticResource SecondaryTextBrush}" />
+        </Style>
+
+        <DataTemplate x:Key="TopGameRowTemplate">
+            <Border Style="{StaticResource CardPanel}" Margin="0,0,0,10">
+                <DockPanel>
+                    <TextBlock Text="{Binding Rank}" DockPanel.Dock="Left" Width="36"
+                               FontSize="22" FontWeight="Bold" Foreground="{StaticResource SecondaryTextBrush}"
+                               VerticalAlignment="Center" />
+                    <TextBlock Text="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}"
+                               DockPanel.Dock="Right" FontSize="20" FontWeight="Bold"
+                               Foreground="{StaticResource AccentBrush}" VerticalAlignment="Center" />
+                    <Grid Width="64" Height="96" Margin="0,0,16,0">
+                        <Border CornerRadius="4" Background="{Binding PlaceholderColorHex, Converter={StaticResource ColorHexToBrushConverter}}">
+                            <TextBlock Text="{Binding PlaceholderInitials}" FontSize="20" FontWeight="Bold" Foreground="White"
+                                       HorizontalAlignment="Center" VerticalAlignment="Center" />
+                        </Border>
+                        <Image Source="{Binding CoverImagePath, Converter={StaticResource PathToImageSourceConverter}}" Stretch="UniformToFill" />
+                    </Grid>
+                    <TextBlock Text="{Binding Name}" FontSize="22" FontWeight="Medium" Foreground="{StaticResource PrimaryTextBrush}"
+                               VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                </DockPanel>
+            </Border>
+        </DataTemplate>
+    </UserControl.Resources>
+
+    <Border Width="1080" Height="1350" Background="{StaticResource CardBackgroundBrush}">
+        <Grid Margin="64">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <!-- Header: brand + year -->
+            <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,36">
+                <TextBlock Text="ASTRA" FontSize="24" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                <TextBlock Text="{Binding Recap.Year, StringFormat=' · {0}'}" FontSize="24" FontWeight="Bold" Foreground="{StaticResource PrimaryTextBrush}" />
+            </StackPanel>
+
+            <!-- Hero stat: total hours played -->
+            <StackPanel Grid.Row="1" Margin="0,0,0,32">
+                <TextBlock Text="{Binding Recap.TotalPlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}}"
+                           FontSize="120" FontWeight="Bold" Foreground="{StaticResource AccentBrush}" />
+                <TextBlock Text="HOURS PLAYED" FontSize="18" FontWeight="SemiBold" Foreground="{StaticResource SecondaryTextBrush}" />
+            </StackPanel>
+
+            <!-- Secondary stats row -->
+            <Grid Grid.Row="2" Margin="0,0,0,36">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <Border Grid.Column="0" Style="{StaticResource CardPanel}" Margin="0,0,8,0">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Recap.TotalSessions}" FontSize="34" FontWeight="Bold" Foreground="{StaticResource PrimaryTextBrush}" />
+                        <TextBlock Text="Sessions" FontSize="14" Foreground="{StaticResource SecondaryTextBrush}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource CardPanel}" Margin="4,0">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Recap.ActiveDays}" FontSize="34" FontWeight="Bold" Foreground="{StaticResource PrimaryTextBrush}" />
+                        <TextBlock Text="Active days" FontSize="14" Foreground="{StaticResource SecondaryTextBrush}" />
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="2" Style="{StaticResource CardPanel}" Margin="8,0,0,0">
+                    <StackPanel>
+                        <TextBlock Text="{Binding Recap.NewGamesThisYear.Count}" FontSize="34" FontWeight="Bold" Foreground="{StaticResource PrimaryTextBrush}" />
+                        <TextBlock Text="New games" FontSize="14" Foreground="{StaticResource SecondaryTextBrush}" />
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Top games section label -->
+            <TextBlock Grid.Row="3" Text="TOP GAMES" Style="{StaticResource SectionLabel}" Margin="0,0,0,12" />
+
+            <!-- Top 5 games list -->
+            <ItemsControl Grid.Row="4" ItemsSource="{Binding TopFive}" ItemTemplate="{StaticResource TopGameRowTemplate}" />
+
+            <!-- Footer branding -->
+            <TextBlock Grid.Row="5" Text="Made with Astra" FontSize="14" Foreground="{StaticResource SecondaryTextBrush}"
+                       HorizontalAlignment="Center" Margin="0,20,0,0" />
+        </Grid>
+    </Border>
+</UserControl>

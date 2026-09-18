@@ -1,5 +1,6 @@
 # Astra project-specific
 CLAUDE.md
+.claude/
 
 # Build output
 bin/

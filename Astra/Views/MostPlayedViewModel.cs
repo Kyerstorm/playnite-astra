@@ -9,7 +9,8 @@ namespace Astra.Views
 {
     public class MostPlayedViewModel : ViewModelBase, IYearScoped
     {
-        private const int TopCount = 25;
+        /// <summary>Selectable row caps for the display-count picker; int.MaxValue renders as "All".</summary>
+        public static readonly List<int> DisplayCountOptions = new List<int> { 10, 25, 50, int.MaxValue };
 
         private readonly Astra plugin;
         private readonly AstraSettings settings;
@@ -24,6 +25,33 @@ namespace Astra.Views
                 {
                     settings.LastSelectedYear = value;
                     Refresh();
+                }
+            }
+        }
+
+        private int selectedDisplayCount;
+        public int SelectedDisplayCount
+        {
+            get => selectedDisplayCount;
+            set
+            {
+                if (SetValue(ref selectedDisplayCount, value))
+                {
+                    settings.MostPlayedDisplayCount = value;
+                    Refresh();
+                }
+            }
+        }
+
+        private bool isGridView;
+        public bool IsGridView
+        {
+            get => isGridView;
+            set
+            {
+                if (SetValue(ref isGridView, value))
+                {
+                    settings.MostPlayedGridView = value;
                 }
             }
         }
@@ -46,6 +74,9 @@ namespace Astra.Views
         public ICommand NextYearCommand { get; }
         public ICommand EditPlaytimeCommand { get; }
         public ICommand ResetPlaytimeCommand { get; }
+        public ICommand OpenGameDetailsCommand { get; }
+        public ICommand ShowListViewCommand { get; }
+        public ICommand ShowGridViewCommand { get; }
 
         public MostPlayedViewModel(Astra plugin, AstraSettings settings)
         {
@@ -56,17 +87,51 @@ namespace Astra.Views
             NextYearCommand = new RelayCommand(_ => Year++, _ => Year < DateTime.Now.Year);
             EditPlaytimeCommand = new RelayCommand(p => EditPlaytime(p as GameRecapEntry));
             ResetPlaytimeCommand = new RelayCommand(p => ResetPlaytime(p as GameRecapEntry));
+            OpenGameDetailsCommand = new RelayCommand(p => OpenGameDetails(p as GameRecapEntry));
+            ShowListViewCommand = new RelayCommand(_ => IsGridView = false);
+            ShowGridViewCommand = new RelayCommand(_ => IsGridView = true);
 
             year = settings.LastSelectedYear > 0 ? settings.LastSelectedYear : DateTime.Now.Year;
+            selectedDisplayCount = DisplayCountOptions.Contains(settings.MostPlayedDisplayCount)
+                ? settings.MostPlayedDisplayCount
+                : 25;
+            isGridView = settings.MostPlayedGridView;
             Refresh();
         }
 
         private void Refresh()
         {
             var recap = plugin.RecapAggregator.BuildRecap(Year);
-            Entries = recap.TopGames.Take(TopCount)
-                .Select((e, i) => { e.Rank = i + 1; return e; })
+
+            // Full (uncapped) prior-year ranking, purely to look up each game's rank for the
+            // trend indicator - RecapAggregator is documented as cheap to recompute on demand.
+            var previousYearRanks = plugin.RecapAggregator.BuildRecap(Year - 1).TopGames
+                .Select((e, i) => (e.GameId, Rank: i + 1))
+                .ToDictionary(x => x.GameId, x => x.Rank);
+
+            var topPlaytime = recap.TopGames.Count > 0 ? recap.TopGames[0].PlaytimeSeconds : 0;
+
+            Entries = recap.TopGames.Take(SelectedDisplayCount)
+                .Select((e, i) =>
+                {
+                    e.Rank = i + 1;
+                    e.PlaytimeShareOfTop = topPlaytime > 0 ? (double)e.PlaytimeSeconds / topPlaytime : 0;
+                    e.PreviousYearRank = previousYearRanks.TryGetValue(e.GameId, out var prevRank) ? prevRank : (int?)null;
+                    return e;
+                })
                 .ToList();
+        }
+
+        /// <summary>Jumps to the game's own details page in Playnite's library view.</summary>
+        private void OpenGameDetails(GameRecapEntry entry)
+        {
+            if (entry == null)
+            {
+                return;
+            }
+
+            plugin.Api.MainView.SwitchToLibraryView();
+            plugin.Api.MainView.SelectGame(entry.GameId);
         }
 
         private void EditPlaytime(GameRecapEntry entry)
