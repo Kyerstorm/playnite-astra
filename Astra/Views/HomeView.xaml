@@ -39,6 +39,73 @@
                 </StackPanel>
             </DataTemplate>
 
+            <!-- All Time / This Year header toggle - mirrors MostPlayedView.xaml's List/Grid
+                 view-toggle button pair exactly (transparent buttons, translucent-gray active
+                 highlight via DataTrigger). The year-nav trio (◀ Year ▶) is only visible in
+                 "This Year" mode - collapsed via YearNavVisibility while IsAllTime is true. -->
+            <Style x:Key="YearNavVisibility" TargetType="StackPanel">
+                <Setter Property="Visibility" Value="Visible" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAllTime}" Value="True">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="HomeToggleButtonBase" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="Cursor" Value="Hand" />
+                <!-- Foreground/Opacity set explicitly (not left to inherit) so the label reads
+                     clearly at rest, not only on hover - Playnite's own default Button chrome
+                     dims unfocused/non-hovered content, which made the un-hovered state hard to
+                     read here. -->
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                <Setter Property="Opacity" Value="1" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#14808080" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="AllTimeToggleButton" TargetType="Button" BasedOn="{StaticResource HomeToggleButtonBase}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAllTime}" Value="True">
+                        <Setter Property="Background" Value="#22808080" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="ThisYearToggleButton" TargetType="Button" BasedOn="{StaticResource HomeToggleButtonBase}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAllTime}" Value="False">
+                        <Setter Property="Background" Value="#22808080" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Recently Added (All-Time mode) is shown as a full-width row, edge-to-edge like
+                 Top Played, rather than This Year mode's fixed-width horizontally-scrolling
+                 carousel - a UniformGrid with only Rows set (Columns left at its 0/auto default)
+                 sizes its column count to exactly the child count, so items stretch to fill
+                 whatever width is available instead of leaving empty space when there are few of
+                 them. Visible only when IsAllTime is true; This Year's carousel is the mirror. -->
+            <Style x:Key="VisibleWhenAllTime" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAllTime}" Value="True">
+                        <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="VisibleWhenThisYear" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAllTime}" Value="False">
+                        <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
             <!-- Fixed-height cell for the "New This Year" carousel: a fixed item height is what
                  lets the vertical WrapPanel below wrap into exactly two rows before scrolling right. -->
             <DataTemplate x:Key="CarouselCoverCellTemplate">
@@ -58,27 +125,91 @@
         </ResourceDictionary>
     </UserControl.Resources>
 
+    <!-- The page content is taller than a typical window once every section is populated
+         (highlights strip + 4 stat cards + top played + new this year + genre/platform
+         breakdown + trend chart) - a plain Grid with a trailing Height="*" row has no way to
+         reach the overflow (WPF gives Auto rows their full desired height regardless of
+         available space and only shrinks Star rows to absorb the deficit; with nothing above
+         this UserControl providing a scroll region either - see AstraShellView.xaml's bare
+         ContentControl - the trailing row was silently clipped instead of scrollable). Wrapping
+         the whole page in a ScrollViewer, with every row now Height="Auto", fixes this and keeps
+         every section reachable regardless of window height or how many sections Home grows to. -->
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
     <Grid Margin="24">
         <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" /> <!-- 0: header -->
+            <RowDefinition Height="Auto" /> <!-- 1: highlights strip (this week / backlog / cadence / next milestone) -->
+            <RowDefinition Height="Auto" /> <!-- 2: overview stat cards -->
+            <RowDefinition Height="Auto" /> <!-- 3: top played -->
+            <RowDefinition Height="Auto" /> <!-- 4: new this year -->
+            <RowDefinition Height="Auto" /> <!-- 5: genre/platform breakdown -->
+            <RowDefinition Height="Auto" /> <!-- 6: playtime trend -->
         </Grid.RowDefinitions>
 
         <!-- Header: greeting + year navigation -->
         <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,12">
             <TextBlock Text="{Binding Greeting}" FontSize="22" FontWeight="Bold" DockPanel.Dock="Left" VerticalAlignment="Center" />
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
-                <Button Content="◀" Command="{Binding PreviousYearCommand}" Width="32" Margin="4,0" />
-                <TextBlock Text="{Binding Year}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" Width="60" TextAlignment="Center" />
-                <Button Content="▶" Command="{Binding NextYearCommand}" Width="32" Margin="4,0" />
+                <Button Content="All Time" Command="{Binding ShowAllTimeCommand}" Style="{StaticResource AllTimeToggleButton}" Margin="4,0" />
+                <Button Content="This Year" Command="{Binding ShowThisYearCommand}" Style="{StaticResource ThisYearToggleButton}" Margin="4,0" />
+                <StackPanel Orientation="Horizontal" Style="{StaticResource YearNavVisibility}">
+                    <Button Content="◀" Command="{Binding PreviousYearCommand}" Width="32" Margin="4,0" />
+                    <TextBlock Text="{Binding Year}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" Width="60" TextAlignment="Center" />
+                    <Button Content="▶" Command="{Binding NextYearCommand}" Width="32" Margin="4,0" />
+                </StackPanel>
             </StackPanel>
         </DockPanel>
 
-        <!-- Overview stat cards -->
+        <!-- Highlights strip: this week so far, backlog burn-down (year-scoped, follows the Year
+             selector), session cadence badge (short bursts vs marathon sessions, from this year's
+             session-length distribution), and two PlayniteAchievements highlights (achievements
+             unlocked this week, rarest unlock ever). "This week" and both achievement highlights
+             are trailing/lifetime facts, deliberately independent of the Year selector - they're
+             "right now"/"ever" facts, not year-scoped. All fall back to plain text (TargetNullValue)
+             when there's nothing to show yet (including when PlayniteAchievements isn't installed),
+             rather than hiding the card. -->
         <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
+            </Grid.ColumnDefinitions>
+            <Border Grid.Column="0" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding ThisWeekSeconds, Converter={StaticResource SecondsToHoursConverter}}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Hours this week" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="1" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Backlog.BacklogPercent, StringFormat='{}{0:0}%'}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="{Binding BacklogDeltaText}" Style="{StaticResource StatLabel}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="2" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding SessionCadence.Label, TargetNullValue='—'}" Style="{StaticResource StatValue}" FontSize="18" />
+                    <TextBlock Text="{Binding SessionCadence.Sentence, TargetNullValue='Play cadence — not enough data yet'}" Style="{StaticResource StatLabel}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="3" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding RecentAchievementUnlocks.Count, TargetNullValue='—'}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Achievements unlocked this week" Style="{StaticResource StatLabel}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="4" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding RarestAchievementEver.AchievementName, TargetNullValue='—'}" Style="{StaticResource StatValue}" FontSize="16" TextWrapping="Wrap" />
+                    <TextBlock Text="Rarest unlock ever" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+        </Grid>
+
+        <!-- Overview stat cards -->
+        <Grid Grid.Row="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
@@ -107,13 +238,13 @@
             <Border Grid.Column="3" Style="{StaticResource StatCard}">
                 <StackPanel>
                     <TextBlock Text="{Binding Recap.NewGamesThisYear.Count}" Style="{StaticResource StatValue}" />
-                    <TextBlock Text="New games this year" Style="{StaticResource StatLabel}" />
+                    <TextBlock Text="{Binding NewGamesStatLabel}" Style="{StaticResource StatLabel}" />
                 </StackPanel>
             </Border>
         </Grid>
 
         <!-- Top 10 most played, by cover - one row, filling the full width -->
-        <StackPanel Grid.Row="2" Margin="0,16,0,0">
+        <StackPanel Grid.Row="3" Margin="0,16,0,0">
             <TextBlock Text="TOP PLAYED" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
             <ItemsControl ItemsSource="{Binding TopPlayed}" ItemTemplate="{StaticResource WideCoverCellTemplate}">
                 <ItemsControl.ItemsPanel>
@@ -124,25 +255,113 @@
             </ItemsControl>
         </StackPanel>
 
-        <!-- New this year, ordered most-recently-added first: a 2-row carousel (vertical wrap,
-             fixed-height items so it wraps after exactly 2 rows) that scrolls horizontally. -->
-        <StackPanel Grid.Row="3" Margin="0,20,0,0">
-            <TextBlock Text="NEW THIS YEAR" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
-            <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto" Height="368">
+        <!-- New this year, ordered most-recently-added first: a single-row horizontally-
+             scrolling strip (per the UI redesign spec's "New This Year" carousel). A plain
+             horizontal StackPanel is used instead of a wrapping panel so the row's height is
+             always exactly one cell tall (176, from CarouselCoverCellTemplate) with no leftover
+             space - an earlier version used a WrapPanel with a hardcoded Height="368" sized for
+             2 rows, but 368 was a few px short of fitting two 188px-tall (176 + margin) items, so
+             every column wrapped after just 1 item anyway, leaving ~190px of dead space below
+             each cover. -->
+        <StackPanel Grid.Row="4" Margin="0,20,0,0">
+            <TextBlock Text="{Binding NewGamesSectionLabel}" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
+            <!-- PreviewMouseWheel redirects vertical wheel input to this ScrollViewer's own
+                 horizontal offset and marks the event handled - without this, a mouse wheel over
+                 this carousel (VerticalScrollBarVisibility="Disabled", so it can't consume a
+                 vertical scroll itself) bubbles up to the page-level ScrollViewer added above and
+                 scrolls the whole Home page instead of this strip, since the two ScrollViewers are
+                 now nested. -->
+            <ScrollViewer Style="{StaticResource VisibleWhenThisYear}" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
+                          PreviewMouseWheel="OnCarouselPreviewMouseWheel">
                 <ItemsControl ItemsSource="{Binding Recap.NewGamesThisYear}" ItemTemplate="{StaticResource CarouselCoverCellTemplate}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <WrapPanel Orientation="Vertical" Height="368" />
+                            <StackPanel Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
             </ScrollViewer>
+            <ItemsControl Style="{StaticResource VisibleWhenAllTime}" ItemsSource="{Binding Recap.NewGamesThisYear}" ItemTemplate="{StaticResource WideCoverCellTemplate}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+        </StackPanel>
+
+        <!-- Genre/platform playtime breakdown - a game counts its FULL playtime under every genre/
+             platform it belongs to (a multi-genre game is not fractionally split), so percentages
+             within one column sum to ~100% of that column, not of the year's total hours. See
+             RecapAggregator.BuildCategoryBreakdown. -->
+        <StackPanel Grid.Row="5" Margin="0,20,0,0">
+            <TextBlock Text="WHAT YOU PLAYED" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <Border Grid.Column="0" Style="{StaticResource AnalyticsCard}">
+                    <StackPanel>
+                        <TextBlock Text="BY GENRE" Style="{StaticResource SectionLabel}" Margin="0,0,0,10" />
+                        <ItemsControl ItemsSource="{Binding GenreBreakdown}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3" ToolTipService.ToolTip="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="11" Opacity="0.8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <Grid Grid.Column="1" Margin="0,0,8,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{Binding BarFraction, Converter={StaticResource BarFractionToGridLengthConverter}}" />
+                                                <ColumnDefinition Width="{Binding BarFraction, Converter={StaticResource BarFractionToGridLengthConverter}, ConverterParameter=remainder}" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Style="{StaticResource BarTrack}" />
+                                        </Grid>
+                                        <TextBlock Grid.Column="2" Text="{Binding Percentage, StringFormat='{}{0:0.#}%'}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+                <Border Grid.Column="1" Style="{StaticResource AnalyticsCard}">
+                    <StackPanel>
+                        <TextBlock Text="BY LIBRARY" Style="{StaticResource SectionLabel}" Margin="0,0,0,10" />
+                        <ItemsControl ItemsSource="{Binding LibraryBreakdown}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Grid Margin="0,3" ToolTipService.ToolTip="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="90" />
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Grid.Column="0" Text="{Binding Label}" FontSize="11" Opacity="0.8" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                                        <Grid Grid.Column="1" Margin="0,0,8,0">
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="{Binding BarFraction, Converter={StaticResource BarFractionToGridLengthConverter}}" />
+                                                <ColumnDefinition Width="{Binding BarFraction, Converter={StaticResource BarFractionToGridLengthConverter}, ConverterParameter=remainder}" />
+                                            </Grid.ColumnDefinitions>
+                                            <Border Grid.Column="0" Style="{StaticResource BarTrack}" />
+                                        </Grid>
+                                        <TextBlock Grid.Column="2" Text="{Binding Percentage, StringFormat='{}{0:0.#}%'}" FontSize="11" Opacity="0.6" VerticalAlignment="Center" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+            </Grid>
         </StackPanel>
 
         <!-- Compact monthly playtime trend for the selected year - an overview teaser, not the analytics
              experience (no Day/Week/Month/Year controls, no range picker: that's the dedicated Trends
              page). "View Trends ->" hands off to it already scoped to Month/<this year>. -->
-        <StackPanel Grid.Row="4" Margin="0,20,0,0">
+        <StackPanel Grid.Row="6" Margin="0,20,0,0">
             <DockPanel LastChildFill="False" Margin="6,0,0,8">
                 <TextBlock Text="PLAYTIME TREND" Style="{StaticResource SectionLabel}" DockPanel.Dock="Left" />
                 <TextBlock DockPanel.Dock="Right" Cursor="Hand" FontSize="12" Foreground="{DynamicResource GlyphBrush}">
@@ -157,4 +376,5 @@
             </Border>
         </StackPanel>
     </Grid>
+    </ScrollViewer>
 </UserControl>

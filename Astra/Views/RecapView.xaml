@@ -27,11 +27,14 @@
                 <TextBlock Text="{Binding Year}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" Width="60" TextAlignment="Center" />
                 <Button Content="▶" Command="{Binding NextYearCommand}" Width="32" Margin="4,0" />
             </StackPanel>
+            <TextBlock Text="{Binding RarestAchievementText}" DockPanel.Dock="Right" VerticalAlignment="Center"
+                       Margin="0,0,16,0" Opacity="0.8" />
         </DockPanel>
 
         <!-- Overview stat cards: proportional grid, reflows at any resolution -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
@@ -63,6 +66,13 @@
                 <StackPanel>
                     <TextBlock Text="{Binding Recap.NewGamesThisYear.Count}" Style="{StaticResource StatValue}" />
                     <TextBlock Text="New games this year" Style="{StaticResource StatLabel}" />
+                </StackPanel>
+            </Border>
+
+            <Border Grid.Column="4" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding Recap.AchievementsUnlockedCount, TargetNullValue='—'}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Achievements unlocked" Style="{StaticResource StatLabel}" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -107,6 +117,7 @@
                                         <TextBlock Text="{Binding SessionCount, StringFormat='{}{0} sessions'}" />
                                         <TextBlock Text=" · " />
                                         <TextBlock Text="{Binding AvgSessionSeconds, Converter={StaticResource SecondsToMinutesConverter}, StringFormat='{}{0}m avg'}" />
+                                        <TextBlock Text="{Binding AchievementSummaryText}" />
                                     </StackPanel>
                                     <Grid Width="28" Height="42" Margin="0,0,10,0">
                                         <Border Style="{StaticResource CoverPlaceholderBorder}">

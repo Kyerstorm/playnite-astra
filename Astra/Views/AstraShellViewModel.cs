@@ -13,10 +13,15 @@ namespace Astra.Views
     {
         private readonly AstraSettings settings;
 
+        public Astra Plugin { get; }
+        public AstraSettings Settings => settings;
+
         public HomeViewModel Home { get; }
         public TrendsViewModel Trends { get; }
         public MostPlayedViewModel MostPlayed { get; }
         public RecapViewModel Recap { get; }
+        public BacklogViewModel Backlog { get; }
+        public ThemeSettingsViewModel ThemeSettings { get; }
 
         private object currentPage;
         public object CurrentPage
@@ -40,6 +45,8 @@ namespace Astra.Views
                     NotifyPropertyChanged(nameof(IsTrendsActive));
                     NotifyPropertyChanged(nameof(IsMostPlayedActive));
                     NotifyPropertyChanged(nameof(IsRecapActive));
+                    NotifyPropertyChanged(nameof(IsBacklogActive));
+                    NotifyPropertyChanged(nameof(IsThemeSettingsActive));
                 }
             }
         }
@@ -48,20 +55,27 @@ namespace Astra.Views
         public bool IsTrendsActive => ReferenceEquals(CurrentPage, Trends);
         public bool IsMostPlayedActive => ReferenceEquals(CurrentPage, MostPlayed);
         public bool IsRecapActive => ReferenceEquals(CurrentPage, Recap);
+        public bool IsBacklogActive => ReferenceEquals(CurrentPage, Backlog);
+        public bool IsThemeSettingsActive => ReferenceEquals(CurrentPage, ThemeSettings);
 
         public ICommand ShowHomeCommand { get; }
         public ICommand ShowTrendsCommand { get; }
         public ICommand ShowMostPlayedCommand { get; }
         public ICommand ShowRecapCommand { get; }
+        public ICommand ShowBacklogCommand { get; }
+        public ICommand ShowThemeSettingsCommand { get; }
 
         public AstraShellViewModel(Astra plugin, AstraSettings settings)
         {
+            Plugin = plugin;
             this.settings = settings;
 
             Home = new HomeViewModel(plugin, settings);
             Trends = new TrendsViewModel(plugin, settings);
             MostPlayed = new MostPlayedViewModel(plugin, settings);
             Recap = new RecapViewModel(plugin, settings);
+            Backlog = new BacklogViewModel(plugin, settings);
+            ThemeSettings = new ThemeSettingsViewModel(plugin, settings);
 
             // Preserves Home's year context when navigating via "View Trends ->": Home / 2025 ->
             // Trends / Year / 2025. Lands on the Year tab (not Month) since only Year can reach an
@@ -76,8 +90,17 @@ namespace Astra.Views
             ShowTrendsCommand = new RelayCommand(_ => CurrentPage = Trends);
             ShowMostPlayedCommand = new RelayCommand(_ => CurrentPage = MostPlayed);
             ShowRecapCommand = new RelayCommand(_ => CurrentPage = Recap);
+            ShowBacklogCommand = new RelayCommand(_ => CurrentPage = Backlog);
+            ShowThemeSettingsCommand = new RelayCommand(_ => CurrentPage = ThemeSettings);
 
-            currentPage = Home;
+            // First-ever shell open (no theme choice made yet) lands on the Settings page as a
+            // one-time "pick a theme" prompt; every later open goes to Home as before.
+            currentPage = settings.ThemePromptShown ? (object)Home : ThemeSettings;
+            if (!settings.ThemePromptShown)
+            {
+                settings.ThemePromptShown = true;
+                plugin.SavePluginSettings(settings);
+            }
         }
     }
 }

@@ -56,5 +56,31 @@ namespace Astra.Tests
 
             Assert.Empty(result);
         }
+
+        [Fact]
+        public void GetPlayedGameIds_ReturnsOnlyGamesWithSessionBeforeCutoff()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var before = Guid.NewGuid();
+            var after = Guid.NewGuid();
+            db.InsertSession(before, new DateTime(2025, 6, 1), 100);
+            db.InsertSession(after, new DateTime(2026, 6, 1), 100);
+
+            var result = db.GetPlayedGameIds(new DateTime(2026, 1, 1));
+
+            Assert.Contains(before, result);
+            Assert.DoesNotContain(after, result);
+        }
+
+        [Fact]
+        public void GetPlayedGameIds_NoSessions_ReturnsEmpty()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var result = db.GetPlayedGameIds(DateTime.Now);
+
+            Assert.Empty(result);
+        }
+
     }
 }

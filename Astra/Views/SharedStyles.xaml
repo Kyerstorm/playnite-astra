@@ -7,6 +7,9 @@
     <local:PathToImageSourceConverter x:Key="PathToImageSourceConverter" />
     <local:ColorHexToBrushConverter x:Key="ColorHexToBrushConverter" />
     <local:AspectRatioHeightConverter x:Key="AspectRatioHeightConverter" />
+    <!-- Promoted from TrendsView.xaml so Home's genre/platform breakdown can reuse the exact same
+         bar-list visual language as Trends' Weekday/Session Length cards. -->
+    <local:BarFractionToGridLengthConverter x:Key="BarFractionToGridLengthConverter" />
 
     <!-- Shared across Home / Most Played / Recap so the three pages read as one system.
          Metrics (radius, padding, gap) are taken from the UI mockup; colors stay bound
@@ -35,6 +38,62 @@
         <Setter Property="FontSize" Value="12" />
         <Setter Property="FontWeight" Value="SemiBold" />
         <Setter Property="Opacity" Value="0.75" />
+    </Style>
+
+    <!-- Two-column analytics card (Gaming Rhythm, Session Activity, ...) - a StatCard-styled
+         border with a section title and a grid of label/value pairs. Reused for every
+         non-chart analytics section across Trends and Home. Promoted here from TrendsView.xaml
+         so both pages can share it. -->
+    <Style x:Key="AnalyticsCard" TargetType="Border" BasedOn="{StaticResource StatCard}">
+        <Setter Property="Padding" Value="18,16" />
+        <Setter Property="Margin" Value="6,6,6,10" />
+    </Style>
+
+    <!-- One row of a horizontal bar chart: label, then a two-column track where the left
+         column's star-width is the value's fraction of the busiest row (see
+         BarFractionToGridLengthConverter) - used for Weekday/Session Length distributions
+         (Trends) and the genre/platform breakdown (Home) so they all read as one visual
+         language. Promoted here from TrendsView.xaml. -->
+    <Style x:Key="BarTrack" TargetType="Border">
+        <Setter Property="Background" Value="{DynamicResource GlyphBrush}" />
+        <Setter Property="CornerRadius" Value="3" />
+        <Setter Property="Height" Value="14" />
+        <Setter Property="Opacity" Value="0.75" />
+    </Style>
+
+    <!-- Multi-select genre/platform filter chip (Backlog page). A plain ToggleButton rather than a
+         WPF multi-select ListBox, since ListBox has no built-in two-way "SelectedItems" binding and
+         this codebase's convention is to hand-roll small interactive controls (see MostPlayedView's
+         ViewToggleButtonBase) rather than add a UI-behavior library. -->
+    <Style x:Key="FilterChipToggle" TargetType="ToggleButton">
+        <Setter Property="Padding" Value="10,4" />
+        <Setter Property="Margin" Value="0,0,6,6" />
+        <Setter Property="Cursor" Value="Hand" />
+        <Setter Property="FontSize" Value="12" />
+        <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+        <Setter Property="Background" Value="Transparent" />
+        <Setter Property="BorderBrush" Value="{DynamicResource NormalBorderBrush}" />
+        <Setter Property="BorderThickness" Value="1" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="ToggleButton">
+                    <Border Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                            BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="12" Padding="{TemplateBinding Padding}">
+                        <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center" />
+                    </Border>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+        <Style.Triggers>
+            <Trigger Property="IsMouseOver" Value="True">
+                <Setter Property="Background" Value="#14808080" />
+            </Trigger>
+            <Trigger Property="IsChecked" Value="True">
+                <Setter Property="Background" Value="{DynamicResource GlyphBrush}" />
+                <Setter Property="Foreground" Value="{DynamicResource PopupBackgroundBrush}" />
+                <Setter Property="BorderThickness" Value="0" />
+            </Trigger>
+        </Style.Triggers>
     </Style>
 
     <!-- Reusable 2:3 cover thumbnail: a colored-initials placeholder Border with the

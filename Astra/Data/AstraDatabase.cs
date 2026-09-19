@@ -311,6 +311,32 @@ namespace Astra.Data
             return results;
         }
 
+        /// <summary>Distinct GameIds with at least one session that started strictly before the given
+        /// cutoff - backs BacklogBurndownService's "has this game ever been played as of year-end X"
+        /// check without loading any session rows, just their GameId. A single-column bounded query,
+        /// same "never load the full Sessions table" philosophy as GetEarliestSessionDates.</summary>
+        public HashSet<Guid> GetPlayedGameIds(DateTime beforeExclusive)
+        {
+            var results = new HashSet<Guid>();
+
+            using (var connection = OpenConnection())
+            using (var command = connection.CreateCommand())
+            {
+                command.CommandText = "SELECT DISTINCT GameId FROM Sessions WHERE StartedAt < @cutoff;";
+                command.Parameters.AddWithValue("@cutoff", beforeExclusive.ToString(TimestampFormat));
+
+                using (var reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        results.Add(Guid.Parse(reader.GetString(0)));
+                    }
+                }
+            }
+
+            return results;
+        }
+
         public int GetSessionCount()
         {
             using (var connection = OpenConnection())
