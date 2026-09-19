@@ -85,6 +85,18 @@ namespace Astra.Views
             set => SetValue(ref statusMessage, value);
         }
 
+        private string rarestAchievementText;
+
+        /// <summary>Precomputed in code rather than a XAML multi-binding, same "format text in
+        /// code, not XAML" convention as HomeViewModel.BacklogDeltaText/GamingYearSummaryBuilder.
+        /// Empty string (not null) when there's nothing to show, so the bound TextBlock collapses
+        /// to blank without needing a separate visibility trigger.</summary>
+        public string RarestAchievementText
+        {
+            get => rarestAchievementText;
+            private set => SetValue(ref rarestAchievementText, value);
+        }
+
         public ICommand PreviousYearCommand { get; }
         public ICommand NextYearCommand { get; }
         public ICommand ExportCommand { get; }
@@ -116,6 +128,11 @@ namespace Astra.Views
         {
             Recap = plugin.RecapAggregator.BuildRecap(Year);
             RefreshLeaderboard();
+
+            var rarest = Recap.RarestAchievementThisYear;
+            RarestAchievementText = rarest == null
+                ? ""
+                : $"Rarest unlock: {rarest.AchievementName} ({rarest.GlobalPercentUnlocked:0.0}% of players)";
         }
 
         private void RefreshLeaderboard()

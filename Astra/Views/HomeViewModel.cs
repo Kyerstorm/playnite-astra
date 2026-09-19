@@ -131,6 +131,27 @@ namespace Astra.Views
             private set => SetValue(ref sessionCadence, value);
         }
 
+        private RecentUnlocksHighlight recentAchievementUnlocks;
+
+        /// <summary>Trailing 7-calendar-day window ending today, same as ThisWeekSeconds - NOT
+        /// year-scoped. Null (rendered via TargetNullValue) when PlayniteAchievements isn't
+        /// available or nothing was unlocked this week.</summary>
+        public RecentUnlocksHighlight RecentAchievementUnlocks
+        {
+            get => recentAchievementUnlocks;
+            private set => SetValue(ref recentAchievementUnlocks, value);
+        }
+
+        private RarestUnlockHighlight rarestAchievementEver;
+
+        /// <summary>Lifetime, NOT year-scoped - mirrors ThisWeekSeconds/RecentAchievementUnlocks in
+        /// staying constant regardless of which Year Home is currently browsing.</summary>
+        public RarestUnlockHighlight RarestAchievementEver
+        {
+            get => rarestAchievementEver;
+            private set => SetValue(ref rarestAchievementEver, value);
+        }
+
         public ICommand PreviousYearCommand { get; }
         public ICommand NextYearCommand { get; }
         public ICommand OpenGameDetailsCommand { get; }
@@ -182,6 +203,20 @@ namespace Astra.Views
             var weekStart = DateTime.Now.Date.AddDays(-6);
             var weekEnd = DateTime.Now.Date.AddDays(1);
             ThisWeekSeconds = plugin.TrendAggregationService.BuildTrend(TrendGranularity.Day, weekStart, weekEnd).TotalPlaytimeSeconds;
+
+            if (plugin.AchievementsProvider.IsAvailable)
+            {
+                var weekUnlocks = plugin.AchievementsProvider.GetUnlockedAchievements(weekStart, weekEnd);
+                RecentAchievementUnlocks = AchievementHighlightsService.FindRecentUnlocks(weekUnlocks);
+
+                var allUnlocks = plugin.AchievementsProvider.GetUnlockedAchievements(DateTime.MinValue, DateTime.MaxValue);
+                RarestAchievementEver = AchievementHighlightsService.FindRarestEver(allUnlocks);
+            }
+            else
+            {
+                RecentAchievementUnlocks = null;
+                RarestAchievementEver = null;
+            }
 
             GenreBreakdown = Recap.GenreBreakdown;
             LibraryBreakdown = Recap.LibraryBreakdown;

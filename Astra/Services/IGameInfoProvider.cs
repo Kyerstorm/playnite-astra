@@ -25,6 +25,18 @@ namespace Astra.Services
         /// <summary>Playnite's own user-set "hidden from library" flag. Used by BacklogService to
         /// exclude hidden games from the Backlog page - unrelated to any Astra session data.</summary>
         public bool IsHidden { get; set; }
+
+        /// <summary>Playnite's own cumulative lifetime playtime for this game (Game.Playtime, in
+        /// seconds), tracked natively by Playnite regardless of whether Astra has ever recorded a
+        /// session for it - covers play that happened before Astra was installed or through a
+        /// library Astra has no tracked sessions for. Used only by RecapAggregator.BuildAllTimeRecap
+        /// to fill in games/libraries Astra's own Sessions table has no record of; yearly BuildRecap
+        /// is untouched since Playnite exposes no per-year breakdown of this figure.</summary>
+        public long NativePlaytimeSeconds { get; set; }
+
+        /// <summary>Playnite's own cumulative lifetime launch count (Game.PlayCount) - the
+        /// All-Time-only analog of NativePlaytimeSeconds for GameRecapEntry.SessionCount.</summary>
+        public int NativePlayCount { get; set; }
     }
 
     /// <summary>

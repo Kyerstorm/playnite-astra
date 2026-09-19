@@ -23,6 +23,7 @@ namespace Astra
 
         internal readonly AstraDatabase Database;
         internal readonly IGameInfoProvider GameInfoProvider;
+        internal readonly IAchievementsProvider AchievementsProvider;
         internal readonly SessionTracker SessionTracker;
         internal readonly RecapAggregator RecapAggregator;
         internal readonly TrendAggregationService TrendAggregationService;
@@ -39,8 +40,9 @@ namespace Astra
 
             Database = new AstraDatabase(GetPluginUserDataPath());
             GameInfoProvider = new PlayniteGameInfoProvider(api);
+            AchievementsProvider = new PlayniteAchievementsProvider(GetExtensionsDataRoot());
             SessionTracker = new SessionTracker(Database);
-            RecapAggregator = new RecapAggregator(Database, GameInfoProvider);
+            RecapAggregator = new RecapAggregator(Database, GameInfoProvider, AchievementsProvider);
             TrendAggregationService = new TrendAggregationService(Database);
             PlaytimeInsightsService = new PlaytimeInsightsService(Database);
             RecapExporter = new RecapExporter();

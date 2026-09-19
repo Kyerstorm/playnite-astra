@@ -56,6 +56,12 @@
                 <Setter Property="BorderThickness" Value="0" />
                 <Setter Property="Padding" Value="10,4" />
                 <Setter Property="Cursor" Value="Hand" />
+                <!-- Foreground/Opacity set explicitly (not left to inherit) so the label reads
+                     clearly at rest, not only on hover - Playnite's own default Button chrome
+                     dims unfocused/non-hovered content, which made the un-hovered state hard to
+                     read here. -->
+                <Setter Property="Foreground" Value="{DynamicResource TextBrush}" />
+                <Setter Property="Opacity" Value="1" />
                 <Style.Triggers>
                     <Trigger Property="IsMouseOver" Value="True">
                         <Setter Property="Background" Value="#14808080" />
@@ -73,6 +79,29 @@
                 <Style.Triggers>
                     <DataTrigger Binding="{Binding IsAllTime}" Value="False">
                         <Setter Property="Background" Value="#22808080" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!-- Recently Added (All-Time mode) is shown as a full-width row, edge-to-edge like
+                 Top Played, rather than This Year mode's fixed-width horizontally-scrolling
+                 carousel - a UniformGrid with only Rows set (Columns left at its 0/auto default)
+                 sizes its column count to exactly the child count, so items stretch to fill
+                 whatever width is available instead of leaving empty space when there are few of
+                 them. Visible only when IsAllTime is true; This Year's carousel is the mirror. -->
+            <Style x:Key="VisibleWhenAllTime" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAllTime}" Value="True">
+                        <Setter Property="Visibility" Value="Visible" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="VisibleWhenThisYear" TargetType="FrameworkElement">
+                <Setter Property="Visibility" Value="Collapsed" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAllTime}" Value="False">
+                        <Setter Property="Visibility" Value="Visible" />
                     </DataTrigger>
                 </Style.Triggers>
             </Style>
@@ -132,13 +161,17 @@
         </DockPanel>
 
         <!-- Highlights strip: this week so far, backlog burn-down (year-scoped, follows the Year
-             selector), and session cadence badge (short bursts vs marathon sessions, from this
-             year's session-length distribution). "This week" is a trailing 7-calendar-day window
-             ending today, deliberately independent of the Year selector - it's a "right now" fact,
-             not year-scoped. The other two fall back to plain text (TargetNullValue) when there's
-             nothing to show yet, rather than hiding the card. -->
+             selector), session cadence badge (short bursts vs marathon sessions, from this year's
+             session-length distribution), and two PlayniteAchievements highlights (achievements
+             unlocked this week, rarest unlock ever). "This week" and both achievement highlights
+             are trailing/lifetime facts, deliberately independent of the Year selector - they're
+             "right now"/"ever" facts, not year-scoped. All fall back to plain text (TargetNullValue)
+             when there's nothing to show yet (including when PlayniteAchievements isn't installed),
+             rather than hiding the card. -->
         <Grid Grid.Row="1">
             <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
                 <ColumnDefinition Width="*" />
@@ -159,6 +192,18 @@
                 <StackPanel>
                     <TextBlock Text="{Binding SessionCadence.Label, TargetNullValue='—'}" Style="{StaticResource StatValue}" FontSize="18" />
                     <TextBlock Text="{Binding SessionCadence.Sentence, TargetNullValue='Play cadence — not enough data yet'}" Style="{StaticResource StatLabel}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="3" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding RecentAchievementUnlocks.Count, TargetNullValue='—'}" Style="{StaticResource StatValue}" />
+                    <TextBlock Text="Achievements unlocked this week" Style="{StaticResource StatLabel}" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+            <Border Grid.Column="4" Style="{StaticResource StatCard}">
+                <StackPanel>
+                    <TextBlock Text="{Binding RarestAchievementEver.AchievementName, TargetNullValue='—'}" Style="{StaticResource StatValue}" FontSize="16" TextWrapping="Wrap" />
+                    <TextBlock Text="Rarest unlock ever" Style="{StaticResource StatLabel}" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -226,7 +271,7 @@
                  vertical scroll itself) bubbles up to the page-level ScrollViewer added above and
                  scrolls the whole Home page instead of this strip, since the two ScrollViewers are
                  now nested. -->
-            <ScrollViewer VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
+            <ScrollViewer Style="{StaticResource VisibleWhenThisYear}" VerticalScrollBarVisibility="Disabled" HorizontalScrollBarVisibility="Auto"
                           PreviewMouseWheel="OnCarouselPreviewMouseWheel">
                 <ItemsControl ItemsSource="{Binding Recap.NewGamesThisYear}" ItemTemplate="{StaticResource CarouselCoverCellTemplate}">
                     <ItemsControl.ItemsPanel>
@@ -236,6 +281,13 @@
                     </ItemsControl.ItemsPanel>
                 </ItemsControl>
             </ScrollViewer>
+            <ItemsControl Style="{StaticResource VisibleWhenAllTime}" ItemsSource="{Binding Recap.NewGamesThisYear}" ItemTemplate="{StaticResource WideCoverCellTemplate}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
         </StackPanel>
 
         <!-- Genre/platform playtime breakdown - a game counts its FULL playtime under every genre/

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Astra.Models;
 using Astra.Services;
 using Astra.Tests.Fakes;
 using Xunit;
@@ -345,6 +346,150 @@ namespace Astra.Tests
 
             Assert.Equal(0, recap.TotalPlaytimeSeconds);
             Assert.Empty(recap.TopGames);
+        }
+
+        [Fact]
+        public void BuildAllTimeRecap_GameWithNoAstraSessions_StillAppearsViaNativePlaytime()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var neverTrackedGame = Guid.NewGuid();
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo
+            {
+                Id = neverTrackedGame,
+                Name = "Played Before Astra Existed",
+                Library = "Xbox",
+                NativePlaytimeSeconds = 50 * 3600,
+                NativePlayCount = 12
+            });
+
+            var recap = new RecapAggregator(db, games).BuildAllTimeRecap();
+
+            var entry = Assert.Single(recap.TopGames);
+            Assert.Equal(50 * 3600, entry.PlaytimeSeconds);
+            Assert.Equal(12, entry.SessionCount);
+            Assert.Equal(50 * 3600, recap.TotalPlaytimeSeconds);
+            var libraryEntry = Assert.Single(recap.LibraryBreakdown);
+            Assert.Equal("Xbox", libraryEntry.Label);
+        }
+
+        [Fact]
+        public void BuildAllTimeRecap_NativePlaytimeSmallerThanTrackedTotal_TrackedTotalWins()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 1, 1), 100 * 3600);
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo
+            {
+                Id = gameId,
+                Name = "Astra Tracks More",
+                NativePlaytimeSeconds = 10 * 3600 // stale/smaller native figure must not win
+            });
+
+            var recap = new RecapAggregator(db, games).BuildAllTimeRecap();
+
+            var entry = Assert.Single(recap.TopGames);
+            Assert.Equal(100 * 3600, entry.PlaytimeSeconds);
+        }
+
+        [Fact]
+        public void BuildAllTimeRecap_NativePlaytimeLargerThanTrackedTotal_NativeTotalWins()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 1, 1), 10 * 3600); // only recently started tracking
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo
+            {
+                Id = gameId,
+                Name = "Played For Years Before Astra",
+                NativePlaytimeSeconds = 200 * 3600
+            });
+
+            var recap = new RecapAggregator(db, games).BuildAllTimeRecap();
+
+            var entry = Assert.Single(recap.TopGames);
+            Assert.Equal(200 * 3600, entry.PlaytimeSeconds);
+        }
+
+        [Fact]
+        public void BuildRecap_AchievementsProviderAvailable_FillsPerGameCompletion()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 3, 1), 3600);
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Game A" });
+            var achievements = new FakeAchievementsProvider().WithProgress(gameId, 12, 30);
+
+            var recap = new RecapAggregator(db, games, achievements).BuildRecap(2026);
+
+            var entry = Assert.Single(recap.TopGames);
+            Assert.Equal(12, entry.AchievementsUnlocked);
+            Assert.Equal(30, entry.AchievementsTotal);
+        }
+
+        [Fact]
+        public void BuildRecap_AchievementsProviderAvailable_ComputesAchievementsUnlockedCount()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 3, 1), 3600);
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Game A" });
+            var achievements = new FakeAchievementsProvider()
+                .WithUnlock(new UnlockedAchievementInfo { GameId = gameId, AchievementName = "In Year", UnlockTimeUtc = new DateTime(2026, 6, 1) })
+                .WithUnlock(new UnlockedAchievementInfo { GameId = gameId, AchievementName = "Previous Year", UnlockTimeUtc = new DateTime(2025, 6, 1) });
+
+            var recap = new RecapAggregator(db, games, achievements).BuildRecap(2026);
+
+            Assert.Equal(1, recap.AchievementsUnlockedCount);
+        }
+
+        [Fact]
+        public void BuildRecap_AchievementsProviderAvailable_PicksRarestAchievementThisYear()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 3, 1), 3600);
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Game A" });
+            var achievements = new FakeAchievementsProvider()
+                .WithUnlock(new UnlockedAchievementInfo { GameId = gameId, AchievementName = "Common", GlobalPercentUnlocked = 80.0, UnlockTimeUtc = new DateTime(2026, 6, 1) })
+                .WithUnlock(new UnlockedAchievementInfo { GameId = gameId, AchievementName = "Rarest", GlobalPercentUnlocked = 1.0, UnlockTimeUtc = new DateTime(2026, 7, 1) });
+
+            var recap = new RecapAggregator(db, games, achievements).BuildRecap(2026);
+
+            Assert.Equal("Rarest", recap.RarestAchievementThisYear.AchievementName);
+        }
+
+        [Fact]
+        public void BuildRecap_AchievementsProviderUnavailable_LeavesAchievementFieldsNull()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 3, 1), 3600);
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Game A" });
+            var achievements = new FakeAchievementsProvider { IsAvailable = false };
+
+            var recap = new RecapAggregator(db, games, achievements).BuildRecap(2026);
+
+            Assert.Null(recap.AchievementsUnlockedCount);
+            Assert.Null(recap.RarestAchievementThisYear);
+            Assert.Null(Assert.Single(recap.TopGames).AchievementsUnlocked);
+        }
+
+        [Fact]
+        public void BuildRecap_NoAchievementsProviderPassed_DoesNotThrow()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var games = new FakeGameInfoProvider();
+
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            Assert.Null(recap.AchievementsUnlockedCount);
         }
     }
 }

@@ -15,11 +15,13 @@ namespace Astra.Services
     {
         private readonly AstraDatabase database;
         private readonly IGameInfoProvider gameInfoProvider;
+        private readonly IAchievementsProvider achievementsProvider;
 
-        public RecapAggregator(AstraDatabase database, IGameInfoProvider gameInfoProvider)
+        public RecapAggregator(AstraDatabase database, IGameInfoProvider gameInfoProvider, IAchievementsProvider achievementsProvider = null)
         {
             this.database = database ?? throw new ArgumentNullException(nameof(database));
             this.gameInfoProvider = gameInfoProvider ?? throw new ArgumentNullException(nameof(gameInfoProvider));
+            this.achievementsProvider = achievementsProvider;
         }
 
         public RecapData BuildRecap(int year)
@@ -80,7 +82,47 @@ namespace Astra.Services
             recap.LibraryBreakdown = BuildCategoryBreakdown(recap.TopGames, games,
                 gameInfo => string.IsNullOrEmpty(gameInfo.Library) ? new List<string>() : new List<string> { gameInfo.Library });
 
+            ApplyAchievements(recap, year);
+
             return recap;
+        }
+
+        /// <summary>Fills achievement fields on a year's recap from IAchievementsProvider - never
+        /// called from BuildAllTimeRecap, achievement stats are year-scoped only per the locked-in
+        /// integration scope. No-ops entirely (leaving all achievement fields null) when no provider
+        /// was supplied or PlayniteAchievements isn't installed/readable.</summary>
+        private void ApplyAchievements(RecapData recap, int year)
+        {
+            if (achievementsProvider == null || !achievementsProvider.IsAvailable)
+            {
+                return;
+            }
+
+            var progress = achievementsProvider.GetProgressForGames(recap.TopGames.Select(g => g.GameId));
+            foreach (var entry in recap.TopGames)
+            {
+                if (progress.TryGetValue(entry.GameId, out var p))
+                {
+                    entry.AchievementsUnlocked = p.Unlocked;
+                    entry.AchievementsTotal = p.Total;
+                }
+            }
+
+            var yearStart = new DateTime(year, 1, 1);
+            var yearEnd = new DateTime(year + 1, 1, 1);
+            var unlocksThisYear = achievementsProvider.GetUnlockedAchievements(yearStart, yearEnd);
+            recap.AchievementsUnlockedCount = unlocksThisYear.Count;
+
+            var rarest = AchievementHighlightsService.FindRarestEver(unlocksThisYear);
+            if (rarest != null)
+            {
+                recap.RarestAchievementThisYear = new RarestAchievementEntry
+                {
+                    GameName = rarest.GameName,
+                    AchievementName = rarest.AchievementName,
+                    GlobalPercentUnlocked = rarest.GlobalPercentUnlocked
+                };
+            }
         }
 
         /// <summary>Lifetime equivalent of BuildRecap(year) - loops year-by-year through the
@@ -91,7 +133,12 @@ namespace Astra.Services
         /// bindings, which read Recap.TotalPlaytimeSeconds/TopGames/etc. directly, never Recap.Year.
         /// RecapData.NewGamesThisYear is repurposed here to mean "games added in the trailing 30
         /// days" rather than "this calendar year" - same list shape, same GameRecapEntry template,
-        /// only the filter differs (see HomeViewModel's section-header relabeling).</summary>
+        /// only the filter differs (see HomeViewModel's section-header relabeling). After the
+        /// per-year merge, also blends in each game's Playnite-native lifetime Playtime/PlayCount
+        /// (GameInfo.NativePlaytimeSeconds/NativePlayCount) so games/libraries Astra's own Sessions
+        /// table has no record of (played before Astra was installed, or through a library Astra
+        /// never tracked) still appear - this is what makes "All Time" genuinely reflect the entire
+        /// library rather than just what Astra happened to track.</summary>
         public RecapData BuildAllTimeRecap()
         {
             var games = gameInfoProvider.GetAllGames().ToDictionary(g => g.Id, g => g);
@@ -136,6 +183,43 @@ namespace Astra.Services
 
                     entry.PlaytimeSeconds += seconds;
                     entry.SessionCount += g.Count();
+                }
+            }
+
+            // Fill in games/libraries Astra's own Sessions table has no record of (played before
+            // Astra was installed, or through a library Astra never tracked a session for) using
+            // Playnite's own native lifetime Playtime/PlayCount - the only way "All Time" can
+            // genuinely mean the entire library rather than just what Astra happened to track.
+            // Takes the max rather than summing: Astra's tracked total and Playnite's native total
+            // both measure the same underlying play time, so summing them would double-count every
+            // session Astra DID track, while max() only fills the gap for sessions it never saw
+            // (and still respects a manual override that intentionally set Astra's figure higher).
+            // ActiveDays/TotalSessions above are left Astra-only - Playnite exposes no per-day or
+            // per-session granularity to blend in for those.
+            foreach (var info in games.Values)
+            {
+                if (info.NativePlaytimeSeconds <= 0)
+                {
+                    continue;
+                }
+
+                if (merged.TryGetValue(info.Id, out var entry))
+                {
+                    entry.PlaytimeSeconds = Math.Max(entry.PlaytimeSeconds, info.NativePlaytimeSeconds);
+                    entry.SessionCount = Math.Max(entry.SessionCount, info.NativePlayCount);
+                }
+                else
+                {
+                    merged[info.Id] = new GameRecapEntry
+                    {
+                        GameId = info.Id,
+                        Name = info.Name,
+                        PlaytimeSeconds = info.NativePlaytimeSeconds,
+                        SessionCount = info.NativePlayCount,
+                        CoverImagePath = info.CoverImagePath,
+                        PlaceholderColorHex = CoverPlaceholder.ColorHexFor(info.Name),
+                        PlaceholderInitials = CoverPlaceholder.InitialsFor(info.Name)
+                    };
                 }
             }
 

@@ -41,7 +41,12 @@ namespace Astra.Services
                 Library = g.PluginId == Guid.Empty
                     ? "Manually Added"
                     : (libraryNames.TryGetValue(g.PluginId, out var libraryName) ? libraryName : "Unknown Source"),
-                IsHidden = g.Hidden
+                IsHidden = g.Hidden,
+                // Game.Playtime/Game.PlayCount are both ulong (confirmed via reflection against
+                // the installed Playnite.SDK.dll) - clamped into long/int since GameRecapEntry's
+                // PlaytimeSeconds/SessionCount are those types and no real game reaches ulong's range.
+                NativePlaytimeSeconds = (long)g.Playtime,
+                NativePlayCount = (int)Math.Min(g.PlayCount, int.MaxValue)
             }).ToList();
         }
 
