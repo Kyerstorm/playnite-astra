@@ -69,8 +69,14 @@ namespace Astra.Models
         public List<GameRecapEntry> TopGames { get; set; } = new List<GameRecapEntry>();
         public List<GameRecapEntry> NewGamesThisYear { get; set; } = new List<GameRecapEntry>();
 
-        /// <summary>Top 6 genres/platforms by (override-aware) playtime - see RecapAggregator.BuildCategoryBreakdown.</summary>
+        /// <summary>Top 6 genres/libraries by (override-aware) playtime - see RecapAggregator.BuildCategoryBreakdown.</summary>
         public List<CategoryBreakdownEntry> GenreBreakdown { get; set; } = new List<CategoryBreakdownEntry>();
-        public List<CategoryBreakdownEntry> PlatformBreakdown { get; set; } = new List<CategoryBreakdownEntry>();
+
+        /// <summary>Playtime by owning library plugin (Steam, GOG, Epic, Xbox, "Manually Added", ...) -
+        /// replaced PlatformBreakdown on Home, since most PC-centric libraries have every game on the same
+        /// single platform, making a by-platform breakdown a near-constant 100% bar. A by-Source breakdown
+        /// was tried first but rejected - Game.Source is often unset for manually-imported games, leaving
+        /// most of the library uncounted. Library (Game.PluginId) resolves for every game.</summary>
+        public List<CategoryBreakdownEntry> LibraryBreakdown { get; set; } = new List<CategoryBreakdownEntry>();
     }
 }

@@ -216,20 +216,33 @@ namespace Astra.Tests
         }
 
         [Fact]
-        public void BuildRecap_PlatformBreakdown_SumsPlaytimeByPlatform()
+        public void BuildRecap_LibraryBreakdown_SumsPlaytimeByLibrary()
         {
             var db = TestDatabaseFactory.CreateTemp();
             var gameId = Guid.NewGuid();
             db.InsertSession(gameId, new DateTime(2026, 1, 1), 7200);
 
             var games = new FakeGameInfoProvider()
-                .Add(new GameInfo { Id = gameId, Name = "PC Game", Platforms = new List<string> { "PC" } });
+                .Add(new GameInfo { Id = gameId, Name = "Steam Game", Library = "Steam" });
 
             var recap = new RecapAggregator(db, games).BuildRecap(2026);
 
-            var pcEntry = Assert.Single(recap.PlatformBreakdown);
-            Assert.Equal("PC", pcEntry.Label);
-            Assert.Equal(7200, pcEntry.PlaytimeSeconds);
+            var steamEntry = Assert.Single(recap.LibraryBreakdown);
+            Assert.Equal("Steam", steamEntry.Label);
+            Assert.Equal(7200, steamEntry.PlaytimeSeconds);
+        }
+
+        [Fact]
+        public void BuildRecap_LibraryBreakdown_GameWithNoLibrary_ExcludedFromBreakdown()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2026, 1, 1), 3600);
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "No Library" });
+            var recap = new RecapAggregator(db, games).BuildRecap(2026);
+
+            Assert.Empty(recap.LibraryBreakdown);
         }
 
         [Fact]

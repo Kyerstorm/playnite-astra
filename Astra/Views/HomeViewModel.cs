@@ -73,11 +73,11 @@ namespace Astra.Views
             private set => SetValue(ref genreBreakdown, value);
         }
 
-        private List<CategoryBreakdownEntry> platformBreakdown;
-        public List<CategoryBreakdownEntry> PlatformBreakdown
+        private List<CategoryBreakdownEntry> libraryBreakdown;
+        public List<CategoryBreakdownEntry> LibraryBreakdown
         {
-            get => platformBreakdown;
-            private set => SetValue(ref platformBreakdown, value);
+            get => libraryBreakdown;
+            private set => SetValue(ref libraryBreakdown, value);
         }
 
         private BacklogBurndownStats backlog;
@@ -141,7 +141,7 @@ namespace Astra.Views
             ThisWeekSeconds = plugin.TrendAggregationService.BuildTrend(TrendGranularity.Day, weekStart, weekEnd).TotalPlaytimeSeconds;
 
             GenreBreakdown = Recap.GenreBreakdown;
-            PlatformBreakdown = Recap.PlatformBreakdown;
+            LibraryBreakdown = Recap.LibraryBreakdown;
 
             var allGames = plugin.GameInfoProvider.GetAllGames().ToList();
 

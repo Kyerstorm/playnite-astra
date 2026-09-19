@@ -77,7 +77,8 @@ namespace Astra.Services
                 .ToList();
 
             recap.GenreBreakdown = BuildCategoryBreakdown(recap.TopGames, games, gameInfo => gameInfo.Genres);
-            recap.PlatformBreakdown = BuildCategoryBreakdown(recap.TopGames, games, gameInfo => gameInfo.Platforms);
+            recap.LibraryBreakdown = BuildCategoryBreakdown(recap.TopGames, games,
+                gameInfo => string.IsNullOrEmpty(gameInfo.Library) ? new List<string>() : new List<string> { gameInfo.Library });
 
             return recap;
         }

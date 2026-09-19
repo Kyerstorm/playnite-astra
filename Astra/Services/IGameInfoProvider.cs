@@ -16,6 +16,12 @@ namespace Astra.Services
         public List<string> Genres { get; set; } = new List<string>();
         public List<string> Platforms { get; set; } = new List<string>();
 
+        /// <summary>Name of the Playnite library plugin that manages this game (Steam, GOG, Epic, Xbox, ...),
+        /// resolved from Game.PluginId, or "Manually Added" when PluginId is empty (no plugin owns it). Unlike
+        /// Game.Source (a free-form, often-unset storefront tag), every game resolves to some Library value,
+        /// which is why this replaced a by-Source breakdown that left most manually-imported games uncounted.</summary>
+        public string Library { get; set; }
+
         /// <summary>Playnite's own user-set "hidden from library" flag. Used by BacklogService to
         /// exclude hidden games from the Backlog page - unrelated to any Astra session data.</summary>
         public bool IsHidden { get; set; }

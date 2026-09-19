@@ -236,8 +236,8 @@
                 </Border>
                 <Border Grid.Column="1" Style="{StaticResource AnalyticsCard}">
                     <StackPanel>
-                        <TextBlock Text="BY PLATFORM" Style="{StaticResource SectionLabel}" Margin="0,0,0,10" />
-                        <ItemsControl ItemsSource="{Binding PlatformBreakdown}">
+                        <TextBlock Text="BY LIBRARY" Style="{StaticResource SectionLabel}" Margin="0,0,0,10" />
+                        <ItemsControl ItemsSource="{Binding LibraryBreakdown}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate>
                                     <Grid Margin="0,3" ToolTipService.ToolTip="{Binding PlaytimeSeconds, Converter={StaticResource SecondsToHoursConverter}, StringFormat='{}{0}h'}">

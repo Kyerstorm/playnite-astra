@@ -1,6 +1,8 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Playnite.SDK;
+using Playnite.SDK.Plugins;
 
 namespace Astra.Services
 {
@@ -16,6 +18,12 @@ namespace Astra.Services
 
         public IEnumerable<GameInfo> GetAllGames()
         {
+            // Game.PluginId is a raw Guid (confirmed via reflection against the installed
+            // Playnite.SDK.dll — unlike Genres/Platforms/Source it is NOT auto-resolved), so it's
+            // looked up against the currently installed library plugins to get a friendly name.
+            // Guid.Empty means "no plugin owns this game" — a manually added entry.
+            var libraryNames = api.Addons.Plugins.OfType<LibraryPlugin>().ToDictionary(p => p.Id, p => p.Name);
+
             return api.Database.Games.Select(g => new GameInfo
             {
                 Id = g.Id,
@@ -30,6 +38,9 @@ namespace Astra.Services
                 // confirmed via reflection against the installed Playnite.SDK.dll.
                 Genres = g.Genres?.Select(x => x.Name).Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>(),
                 Platforms = g.Platforms?.Select(x => x.Name).Where(n => !string.IsNullOrEmpty(n)).ToList() ?? new List<string>(),
+                Library = g.PluginId == Guid.Empty
+                    ? "Manually Added"
+                    : (libraryNames.TryGetValue(g.PluginId, out var libraryName) ? libraryName : "Unknown Source"),
                 IsHidden = g.Hidden
             }).ToList();
         }
