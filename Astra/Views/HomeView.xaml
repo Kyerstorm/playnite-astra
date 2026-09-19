@@ -39,6 +39,44 @@
                 </StackPanel>
             </DataTemplate>
 
+            <!-- All Time / This Year header toggle - mirrors MostPlayedView.xaml's List/Grid
+                 view-toggle button pair exactly (transparent buttons, translucent-gray active
+                 highlight via DataTrigger). The year-nav trio (◀ Year ▶) is only visible in
+                 "This Year" mode - collapsed via YearNavVisibility while IsAllTime is true. -->
+            <Style x:Key="YearNavVisibility" TargetType="StackPanel">
+                <Setter Property="Visibility" Value="Visible" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAllTime}" Value="True">
+                        <Setter Property="Visibility" Value="Collapsed" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="HomeToggleButtonBase" TargetType="Button">
+                <Setter Property="Background" Value="Transparent" />
+                <Setter Property="BorderThickness" Value="0" />
+                <Setter Property="Padding" Value="10,4" />
+                <Setter Property="Cursor" Value="Hand" />
+                <Style.Triggers>
+                    <Trigger Property="IsMouseOver" Value="True">
+                        <Setter Property="Background" Value="#14808080" />
+                    </Trigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="AllTimeToggleButton" TargetType="Button" BasedOn="{StaticResource HomeToggleButtonBase}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAllTime}" Value="True">
+                        <Setter Property="Background" Value="#22808080" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+            <Style x:Key="ThisYearToggleButton" TargetType="Button" BasedOn="{StaticResource HomeToggleButtonBase}">
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding IsAllTime}" Value="False">
+                        <Setter Property="Background" Value="#22808080" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
             <!-- Fixed-height cell for the "New This Year" carousel: a fixed item height is what
                  lets the vertical WrapPanel below wrap into exactly two rows before scrolling right. -->
             <DataTemplate x:Key="CarouselCoverCellTemplate">
@@ -83,9 +121,13 @@
         <DockPanel Grid.Row="0" LastChildFill="False" Margin="0,0,0,12">
             <TextBlock Text="{Binding Greeting}" FontSize="22" FontWeight="Bold" DockPanel.Dock="Left" VerticalAlignment="Center" />
             <StackPanel Orientation="Horizontal" DockPanel.Dock="Right" VerticalAlignment="Center">
-                <Button Content="◀" Command="{Binding PreviousYearCommand}" Width="32" Margin="4,0" />
-                <TextBlock Text="{Binding Year}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" Width="60" TextAlignment="Center" />
-                <Button Content="▶" Command="{Binding NextYearCommand}" Width="32" Margin="4,0" />
+                <Button Content="All Time" Command="{Binding ShowAllTimeCommand}" Style="{StaticResource AllTimeToggleButton}" Margin="4,0" />
+                <Button Content="This Year" Command="{Binding ShowThisYearCommand}" Style="{StaticResource ThisYearToggleButton}" Margin="4,0" />
+                <StackPanel Orientation="Horizontal" Style="{StaticResource YearNavVisibility}">
+                    <Button Content="◀" Command="{Binding PreviousYearCommand}" Width="32" Margin="4,0" />
+                    <TextBlock Text="{Binding Year}" FontSize="18" FontWeight="Bold" VerticalAlignment="Center" Width="60" TextAlignment="Center" />
+                    <Button Content="▶" Command="{Binding NextYearCommand}" Width="32" Margin="4,0" />
+                </StackPanel>
             </StackPanel>
         </DockPanel>
 
@@ -151,7 +193,7 @@
             <Border Grid.Column="3" Style="{StaticResource StatCard}">
                 <StackPanel>
                     <TextBlock Text="{Binding Recap.NewGamesThisYear.Count}" Style="{StaticResource StatValue}" />
-                    <TextBlock Text="New games this year" Style="{StaticResource StatLabel}" />
+                    <TextBlock Text="{Binding NewGamesStatLabel}" Style="{StaticResource StatLabel}" />
                 </StackPanel>
             </Border>
         </Grid>
@@ -177,7 +219,7 @@
              every column wrapped after just 1 item anyway, leaving ~190px of dead space below
              each cover. -->
         <StackPanel Grid.Row="4" Margin="0,20,0,0">
-            <TextBlock Text="NEW THIS YEAR" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
+            <TextBlock Text="{Binding NewGamesSectionLabel}" Style="{StaticResource SectionLabel}" Margin="6,0,0,8" />
             <!-- PreviewMouseWheel redirects vertical wheel input to this ScrollViewer's own
                  horizontal offset and marks the event handled - without this, a mouse wheel over
                  this carousel (VerticalScrollBarVisibility="Disabled", so it can't consume a

@@ -264,5 +264,87 @@ namespace Astra.Tests
             Assert.Equal(6, recap.GenreBreakdown.Count);
             Assert.Equal("Genre0", recap.GenreBreakdown.First().Label); // 8h, the largest
         }
+
+        [Fact]
+        public void BuildAllTimeRecap_SumsPlaytimeAcrossMultipleYears_ForTheSameGame()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2024, 3, 1), 3600);
+            db.InsertSession(gameId, new DateTime(2026, 5, 1), 7200);
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Long Runner" });
+            var recap = new RecapAggregator(db, games).BuildAllTimeRecap();
+
+            var entry = Assert.Single(recap.TopGames);
+            Assert.Equal(3600 + 7200, entry.PlaytimeSeconds);
+            Assert.Equal(3600 + 7200, recap.TotalPlaytimeSeconds);
+        }
+
+        [Fact]
+        public void BuildAllTimeRecap_AppliesEachYearsOverride_WhenSummingAcrossYears()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+            db.InsertSession(gameId, new DateTime(2024, 1, 1), 100 * 3600);
+            db.InsertSession(gameId, new DateTime(2026, 1, 1), 50 * 3600);
+            db.SetPlaytimeOverride(gameId, 2024, 10 * 3600); // only 2024 is corrected
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Corrected" });
+            var recap = new RecapAggregator(db, games).BuildAllTimeRecap();
+
+            var entry = Assert.Single(recap.TopGames);
+            Assert.Equal(10 * 3600 + 50 * 3600, entry.PlaytimeSeconds); // overridden 2024 + raw 2026
+        }
+
+        [Fact]
+        public void BuildAllTimeRecap_ActiveDays_SumsDistinctDaysAcrossYears_NotJustSessionCount()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var gameId = Guid.NewGuid();
+
+            // 2024: 2 distinct days (2 sessions on the same day, must count once)
+            db.InsertSession(gameId, new DateTime(2024, 1, 1, 10, 0, 0), 1800);
+            db.InsertSession(gameId, new DateTime(2024, 1, 1, 20, 0, 0), 1800);
+            db.InsertSession(gameId, new DateTime(2024, 1, 2), 1800);
+
+            // 2026: 3 distinct days
+            db.InsertSession(gameId, new DateTime(2026, 6, 1), 1800);
+            db.InsertSession(gameId, new DateTime(2026, 6, 2), 1800);
+            db.InsertSession(gameId, new DateTime(2026, 6, 3), 1800);
+
+            var games = new FakeGameInfoProvider().Add(new GameInfo { Id = gameId, Name = "Frequent" });
+            var recap = new RecapAggregator(db, games).BuildAllTimeRecap();
+
+            Assert.Equal(5, recap.ActiveDays);
+        }
+
+        [Fact]
+        public void BuildAllTimeRecap_RecentlyAdded_OnlyIncludesGamesAddedInLast30Days()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+            var recentGame = Guid.NewGuid();
+            var oldGame = Guid.NewGuid();
+
+            var games = new FakeGameInfoProvider()
+                .Add(new GameInfo { Id = recentGame, Name = "Recent", Added = DateTime.Now.AddDays(-5) })
+                .Add(new GameInfo { Id = oldGame, Name = "Old", Added = DateTime.Now.AddDays(-40) });
+
+            var recap = new RecapAggregator(db, games).BuildAllTimeRecap();
+
+            var recentName = Assert.Single(recap.NewGamesThisYear).Name;
+            Assert.Equal("Recent", recentName);
+        }
+
+        [Fact]
+        public void BuildAllTimeRecap_NoSessions_ReturnsZeroedRecapWithoutThrowing()
+        {
+            var db = TestDatabaseFactory.CreateTemp();
+
+            var recap = new RecapAggregator(db, new FakeGameInfoProvider()).BuildAllTimeRecap();
+
+            Assert.Equal(0, recap.TotalPlaytimeSeconds);
+            Assert.Empty(recap.TopGames);
+        }
     }
 }

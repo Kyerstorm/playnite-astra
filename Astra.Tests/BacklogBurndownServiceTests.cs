@@ -102,5 +102,25 @@ namespace Astra.Tests
 
             Assert.Equal(1, result.UnplayedGameCount);
         }
+
+        [Fact]
+        public void ComputeAllTime_NeverPlayedGameCountsAsUnplayed_AndDeltaIsAlwaysZero()
+        {
+            var playedId = Guid.NewGuid();
+            var unplayedId = Guid.NewGuid();
+            var games = new List<GameInfo>
+            {
+                new GameInfo { Id = playedId, Name = "Played", Added = new DateTime(2020, 1, 1) },
+                new GameInfo { Id = unplayedId, Name = "Unplayed", Added = new DateTime(2020, 1, 1) }
+            };
+            var everPlayed = new HashSet<Guid> { playedId };
+
+            var result = BacklogBurndownService.ComputeAllTime(games, everPlayed);
+
+            Assert.Equal(2, result.OwnedGameCount);
+            Assert.Equal(1, result.UnplayedGameCount);
+            Assert.Equal(50, result.BacklogPercent);
+            Assert.Equal(0, result.DeltaPercentagePoints);
+        }
     }
 }

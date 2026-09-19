@@ -83,6 +83,93 @@ namespace Astra.Services
             return recap;
         }
 
+        /// <summary>Lifetime equivalent of BuildRecap(year) - loops year-by-year through the
+        /// existing bounded GetSessionsForYear/GetPlaytimeOverridesForYear queries (from the
+        /// earliest tracked year through the current year) rather than adding a new full-table-scan
+        /// database method, so per-year manual overrides are applied with the exact same precedence
+        /// BuildRecap already uses. RecapData.Year is left at its default (0) - unused by Home's
+        /// bindings, which read Recap.TotalPlaytimeSeconds/TopGames/etc. directly, never Recap.Year.
+        /// RecapData.NewGamesThisYear is repurposed here to mean "games added in the trailing 30
+        /// days" rather than "this calendar year" - same list shape, same GameRecapEntry template,
+        /// only the filter differs (see HomeViewModel's section-header relabeling).</summary>
+        public RecapData BuildAllTimeRecap()
+        {
+            var games = gameInfoProvider.GetAllGames().ToDictionary(g => g.Id, g => g);
+            var earliestYear = database.GetEarliestSessionYear() ?? DateTime.Now.Year;
+
+            var merged = new Dictionary<Guid, GameRecapEntry>();
+            var totalSessions = 0;
+            var activeDays = 0;
+
+            for (var year = earliestYear; year <= DateTime.Now.Year; year++)
+            {
+                var sessions = database.GetSessionsForYear(year);
+                if (sessions.Count == 0)
+                {
+                    continue;
+                }
+
+                var overrides = database.GetPlaytimeOverridesForYear(year);
+                totalSessions += sessions.Count;
+                activeDays += sessions.Select(s => s.StartedAt.Date).Distinct().Count();
+
+                foreach (var g in sessions.GroupBy(s => s.GameId))
+                {
+                    var seconds = overrides.TryGetValue(g.Key, out var overrideSeconds)
+                        ? overrideSeconds
+                        : g.Sum(s => s.DurationSeconds);
+
+                    if (!merged.TryGetValue(g.Key, out var entry))
+                    {
+                        games.TryGetValue(g.Key, out var info);
+                        var name = info?.Name ?? "Unknown game";
+                        entry = new GameRecapEntry
+                        {
+                            GameId = g.Key,
+                            Name = name,
+                            CoverImagePath = info?.CoverImagePath,
+                            PlaceholderColorHex = CoverPlaceholder.ColorHexFor(name),
+                            PlaceholderInitials = CoverPlaceholder.InitialsFor(name)
+                        };
+                        merged[g.Key] = entry;
+                    }
+
+                    entry.PlaytimeSeconds += seconds;
+                    entry.SessionCount += g.Count();
+                }
+            }
+
+            var recap = new RecapData
+            {
+                TotalSessions = totalSessions,
+                ActiveDays = activeDays,
+                TopGames = merged.Values.OrderByDescending(e => e.PlaytimeSeconds).ToList()
+            };
+            recap.TotalPlaytimeSeconds = recap.TopGames.Sum(g => g.PlaytimeSeconds);
+
+            var recentCutoff = DateTime.Now.AddDays(-30);
+            recap.NewGamesThisYear = games.Values
+                .Where(g => g.Added.HasValue && g.Added.Value >= recentCutoff)
+                .OrderByDescending(g => g.Added)
+                .Select(g => new GameRecapEntry
+                {
+                    GameId = g.Id,
+                    Name = g.Name,
+                    PlaytimeSeconds = recap.TopGames.FirstOrDefault(t => t.GameId == g.Id)?.PlaytimeSeconds ?? 0,
+                    SessionCount = recap.TopGames.FirstOrDefault(t => t.GameId == g.Id)?.SessionCount ?? 0,
+                    CoverImagePath = g.CoverImagePath,
+                    PlaceholderColorHex = CoverPlaceholder.ColorHexFor(g.Name),
+                    PlaceholderInitials = CoverPlaceholder.InitialsFor(g.Name)
+                })
+                .ToList();
+
+            recap.GenreBreakdown = BuildCategoryBreakdown(recap.TopGames, games, info => info.Genres);
+            recap.LibraryBreakdown = BuildCategoryBreakdown(recap.TopGames, games,
+                info => string.IsNullOrEmpty(info.Library) ? new List<string>() : new List<string> { info.Library });
+
+            return recap;
+        }
+
         /// <summary>Fans each game's (possibly-overridden) year playtime out to every one of its genres/
         /// platforms and sums by label. A game with multiple genres counts its FULL playtime under each
         /// one it belongs to - this is a deliberate, documented trade-off (see RecapAggregatorTests), not

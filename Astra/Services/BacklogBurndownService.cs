@@ -37,6 +37,23 @@ namespace Astra.Services
             };
         }
 
+        /// <summary>Lifetime backlog snapshot with no year-over-year comparison - there is no
+        /// "previous year" in All-Time mode. Reuses the same ComputeSnapshot private helper as
+        /// Compute, with DateTime.MaxValue as the cutoff so every game with any Added date (or none)
+        /// counts as owned.</summary>
+        public static BacklogBurndownStats ComputeAllTime(IEnumerable<GameInfo> allGames, HashSet<Guid> everPlayedGameIds)
+        {
+            var (owned, unplayed, percent) = ComputeSnapshot(allGames.ToList(), everPlayedGameIds, DateTime.MaxValue);
+            return new BacklogBurndownStats
+            {
+                OwnedGameCount = owned,
+                UnplayedGameCount = unplayed,
+                BacklogPercent = percent,
+                PreviousYearBacklogPercent = percent,
+                DeltaPercentagePoints = 0
+            };
+        }
+
         private static (int owned, int unplayed, double percent) ComputeSnapshot(
             List<GameInfo> games, HashSet<Guid> playedGameIds, DateTime cutoff)
         {
