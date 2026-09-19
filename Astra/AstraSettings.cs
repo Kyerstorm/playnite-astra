@@ -11,6 +11,9 @@ namespace Astra
         private int lastSelectedYear = DateTime.Now.Year;
         private int mostPlayedDisplayCount = 25;
         private bool mostPlayedGridView;
+        private string themeName = "Playnite";
+        private string accentColor = "Teal";
+        private bool themePromptShown;
 
         public string DisplayName
         {
@@ -35,6 +38,31 @@ namespace Astra
         {
             get => mostPlayedGridView;
             set => SetValue(ref mostPlayedGridView, value);
+        }
+
+        /// <summary>"Playnite" is the sentinel meaning "no Astra theme dictionary merged" (today's
+        /// behavior, unchanged). Any other value maps to a resource in Astra/Themes/ via
+        /// AstraThemeCatalog.ResourcePathFor.</summary>
+        public string ThemeName
+        {
+            get => themeName;
+            set => SetValue(ref themeName, value);
+        }
+
+        /// <summary>One of AstraThemeCatalog.Accents' names. Only visually affects custom themes
+        /// (Dark/Light/Oled) - "Follow Playnite theme" never overrides GlyphBrush.</summary>
+        public string AccentColor
+        {
+            get => accentColor;
+            set => SetValue(ref accentColor, value);
+        }
+
+        /// <summary>Whether the one-time "pick a theme" first-run landing (Astra shell opens
+        /// directly to the Settings page instead of Home) has already happened.</summary>
+        public bool ThemePromptShown
+        {
+            get => themePromptShown;
+            set => SetValue(ref themePromptShown, value);
         }
     }
 
